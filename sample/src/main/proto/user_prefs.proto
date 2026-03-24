@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+option java_package = "com.yashraj.datastoreinspector.sample.proto";
+option java_multiple_files = true;
+
+message UserPreferences {
+  string username = 1;
+  string email = 2;
+  string number = 3;
+}
