@@ -55,6 +55,9 @@ protobuf {
 }
 
 dependencies {
+    // DataStore Inspector library
+    debugImplementation(project(":inspector"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
