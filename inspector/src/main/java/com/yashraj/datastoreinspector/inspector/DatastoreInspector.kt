@@ -2,6 +2,8 @@ package com.yashraj.datastoreinspector.inspector
 
 import android.content.Context
 import android.util.Log
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 
 object DatastoreInspector {
 
@@ -9,7 +11,16 @@ object DatastoreInspector {
 
     internal var appContext: Context? = null
         private set
+    internal val registeredDataStores = mutableMapOf<String, DataStore<Preferences>>()
 
+
+
+    // Register a DataStore instance for inspection
+    fun register(name: String, dataStore: DataStore<Preferences>): DatastoreInspector {
+        registeredDataStores[name] = dataStore
+        Log.d(TAG, "Registered DataStore: $name")
+        return this
+    }
     // Start the inspector. Called automatically via ContentProvider.
     fun start(context: Context) {
         if (appContext != null) {
@@ -28,6 +39,15 @@ object DatastoreInspector {
         val handler = SharedPreferenceHandler(context)
         return handler.listAll().associateWith { fileName ->
             handler.getAllWithTypes(fileName)
+        }
+    }
+
+    // Read all Preferences DataStores and their current values.
+    fun readAllPreferencesDataStores(): Map<String, List<DataStoreEntry>> {
+        val context = appContext ?: return emptyMap()
+        val handler = PreferencesDataStoreHandler(context)
+        return handler.listAll().associate { info ->
+            info.name to handler.getAll(info.name)
         }
     }
 }
