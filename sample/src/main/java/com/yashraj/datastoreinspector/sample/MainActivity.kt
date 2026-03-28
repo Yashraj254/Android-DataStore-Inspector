@@ -17,6 +17,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.lifecycleScope
 import com.yashraj.datastoreinspector.inspector.DatastoreInspector
 import com.yashraj.datastoreinspector.inspector.PreferencesDataStoreHandler
+import com.yashraj.datastoreinspector.inspector.ProtoDataStoreHandler
 import com.yashraj.datastoreinspector.inspector.SharedPreferenceHandler
 import com.yashraj.datastoreinspector.sample.databinding.ActivityMainBinding
 import com.yashraj.datastoreinspector.sample.proto.UserPreferences
@@ -171,6 +172,15 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             binding.tvPrefsDataStore.text = pairs.toString()
+
+        }
+
+        lifecycleScope.launch {
+            val protoHandler = ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores())
+            protoHandler.getAll("user_proto_preferences").forEach {
+                Log.d(TAG, "Proto: ${it.key}: ${it.value} (${it.type})")
+            }
+            protoHandler.update("user_proto_preferences", "name", "Optimus Prime")
 
         }
     }

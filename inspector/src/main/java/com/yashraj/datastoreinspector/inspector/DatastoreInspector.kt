@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import kotlin.collections.set
 
 object DatastoreInspector {
 
@@ -12,6 +13,7 @@ object DatastoreInspector {
     internal var appContext: Context? = null
         private set
     internal val registeredDataStores = mutableMapOf<String, DataStore<Preferences>>()
+    internal val registeredProtoDataStores = mutableMapOf<String, ProtoDataStoreHolder<*>>()
 
 
 
@@ -21,6 +23,18 @@ object DatastoreInspector {
         Log.d(TAG, "Registered DataStore: $name")
         return this
     }
+
+    // Register a Proto DataStore instance for inspection. Provide a mapper to define how fields are read and written.
+    fun <T> registerProto(
+        name: String,
+        dataStore: DataStore<T>,
+        mapper: ProtoInspectorMapper<T>
+    ): DatastoreInspector {
+        registeredProtoDataStores[name] = ProtoDataStoreHolder(dataStore, mapper)
+        Log.d(TAG, "Registered Proto DataStore: $name")
+        return this
+    }
+
     // Start the inspector. Called automatically via ContentProvider.
     fun start(context: Context) {
         if (appContext != null) {
@@ -50,4 +64,7 @@ object DatastoreInspector {
             info.name to handler.getAll(info.name)
         }
     }
+
+     fun getProtoDataStores() = registeredProtoDataStores.toMap()
+
 }

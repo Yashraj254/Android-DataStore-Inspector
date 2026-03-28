@@ -19,14 +19,6 @@ class SampleApplication : Application() {
 
     fun readDataStores() {
         DatastoreInspector.register("user_preferences", prefsDataStore)
-        val dataStores = DatastoreInspector.readAllPreferencesDataStores()
-        if (dataStores.isEmpty()) {
-            Log.d(TAG, "No DataStores found.")
-        } else {
-            dataStores.forEach { (name, entries) ->
-                Log.d(TAG, "DataStore: $name")
-                entries.forEach { Log.d(TAG, "${it.key} : ${it.value} Type : ${it.type}") }
-            }
-        }
+            .registerProto("user_proto_preferences", protoDataStore, UserPreferencesMapper())
     }
 }
