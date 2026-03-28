@@ -1,5 +1,6 @@
 package com.yashraj.datastoreinspector.sample
 
+import android.R.attr.name
 import android.content.Context
 import android.os.Bundle
 import android.util.Log
@@ -15,6 +16,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.lifecycleScope
 import com.yashraj.datastoreinspector.inspector.DatastoreInspector
+import com.yashraj.datastoreinspector.inspector.PreferencesDataStoreHandler
 import com.yashraj.datastoreinspector.inspector.SharedPreferenceHandler
 import com.yashraj.datastoreinspector.sample.databinding.ActivityMainBinding
 import com.yashraj.datastoreinspector.sample.proto.UserPreferences
@@ -56,7 +58,9 @@ class MainActivity : AppCompatActivity() {
 
         // Load saved data
         loadFromSharedPrefs()
-        observePreferencesDataStore()
+//        observePreferencesDataStore()
+        readDataStores()
+
         observeProtoDataStore()
     }
 
@@ -104,7 +108,7 @@ class MainActivity : AppCompatActivity() {
                 val email = prefs[emailKey] ?: "N/A"
                 val number = prefs[numberKey] ?: "N/A"
 
-                binding.tvPrefsDataStore.text = "Username: $username\nEmail: $email\nNumber: $number"
+                binding.tvPrefsDataStore.text = "Username: $username\nEmail: $email\nNumber: $number\n"
             }
         }
     }
@@ -155,10 +159,19 @@ class MainActivity : AppCompatActivity() {
         if (dataStores.isEmpty()) {
             Log.d(TAG, "No DataStores found.")
         } else {
-            dataStores.forEach { (name, entries) ->
+            val pairs = StringBuilder()
+
+            dataStores.forEach { (fileName, entries) ->
+                pairs.append("\nFile: $fileName\n")
+
                 Log.d(TAG, "DataStore: $name")
-                entries.forEach { Log.d(TAG, "${it.key} : ${it.value} Type : ${it.type}") }
+                entries.forEach {
+                    Log.d(TAG, "${it.key} : ${it.value} Type : ${it.type}")
+                    pairs.append("${it.key}: ${it.value}\n")
+                }
             }
+            binding.tvPrefsDataStore.text = pairs.toString()
+
         }
     }
 
@@ -166,6 +179,11 @@ class MainActivity : AppCompatActivity() {
         val prefsHandler = SharedPreferenceHandler(this)
         prefsHandler.update("test_config", "test_key", """["test1","test2"]""", "StringSet")
         prefsHandler.delete("test_config", "test_key")
+    }
 
+    fun updateDataStore() {
+        val dsHandler = PreferencesDataStoreHandler(this)
+        dsHandler.update("user_preferences", "username", "Batman_Updated", "String")
+        dsHandler.delete("user_preferences", "username", "String")
     }
 }
