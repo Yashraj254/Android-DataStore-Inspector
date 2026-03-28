@@ -34,4 +34,5 @@ android {
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.datastore.preferences)
+    implementation(libs.gson)
 }

@@ -2,6 +2,7 @@ package com.yashraj.datastoreinspector.sample
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -13,6 +14,8 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.lifecycleScope
+import com.yashraj.datastoreinspector.inspector.DatastoreInspector
+import com.yashraj.datastoreinspector.inspector.SharedPreferenceHandler
 import com.yashraj.datastoreinspector.sample.databinding.ActivityMainBinding
 import com.yashraj.datastoreinspector.sample.proto.UserPreferences
 import com.yashraj.datastoreinspector.sample.proto.copy
@@ -26,6 +29,10 @@ val Context.protoDataStore: DataStore<UserPreferences> by dataStore(
 )
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        private const val TAG = "MainActivity"
+    }
 
     private val PREFS_NAME = "user_shared_prefs"
     private lateinit var binding: ActivityMainBinding
@@ -67,7 +74,9 @@ class MainActivity : AppCompatActivity() {
         val username = sharedPreferences.getString("username", "N/A")
         val email = sharedPreferences.getString("email", "N/A")
         val number = sharedPreferences.getString("number", "N/A")
-        binding.tvSharedPrefs.text = "Username: $username\nEmail: $email\nNumber: $number"
+        binding.tvSharedPrefs.text = "Username: $username\nEmail: $email\nNumber: $number\n"
+        updateSharedPreference()
+        readSharedPreferences()
     }
 
     private fun saveToPreferencesDataStore() {
@@ -115,8 +124,48 @@ class MainActivity : AppCompatActivity() {
     private fun observeProtoDataStore() {
         lifecycleScope.launch {
             protoDataStore.data.collectLatest { userPrefs ->
-                binding.tvProtoDataStore.text = "Username: ${userPrefs.username}\nEmail: ${userPrefs.email}\nNumber: ${userPrefs.number}"
+                binding.tvProtoDataStore.text =
+                    "Username: ${userPrefs.username}\nEmail: ${userPrefs.email}\nNumber: ${userPrefs.number}"
             }
         }
+    }
+
+    fun readSharedPreferences() {
+        val prefs = DatastoreInspector.readAllSharedPreferences()
+        if (prefs.isEmpty()) {
+            Log.d(TAG, "No SharedPreferences found.")
+        } else {
+            val pairs = StringBuilder()
+            pairs.append(binding.tvSharedPrefs.text)
+            prefs.forEach { (fileName, entries) ->
+                Log.d(TAG, "File: $fileName")
+                pairs.append("\nFile: $fileName\n")
+                entries.forEach {
+                    Log.d(TAG, "${it.key} : ${it.value} Type : ${it.type}")
+                    pairs.append("${it.key}: ${it.value}\n")
+                }
+            }
+            binding.tvSharedPrefs.text = pairs.toString()
+        }
+    }
+
+    fun readDataStores() {
+        DatastoreInspector.register("user_preferences", prefsDataStore)
+        val dataStores = DatastoreInspector.readAllPreferencesDataStores()
+        if (dataStores.isEmpty()) {
+            Log.d(TAG, "No DataStores found.")
+        } else {
+            dataStores.forEach { (name, entries) ->
+                Log.d(TAG, "DataStore: $name")
+                entries.forEach { Log.d(TAG, "${it.key} : ${it.value} Type : ${it.type}") }
+            }
+        }
+    }
+
+    fun updateSharedPreference() {
+        val prefsHandler = SharedPreferenceHandler(this)
+        prefsHandler.update("test_config", "test_key", """["test1","test2"]""", "StringSet")
+        prefsHandler.delete("test_config", "test_key")
+
     }
 }

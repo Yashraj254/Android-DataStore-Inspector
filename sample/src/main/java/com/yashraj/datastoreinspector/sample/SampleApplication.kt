@@ -12,21 +12,10 @@ class SampleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         DatastoreInspector.start(this)
-        readSharedPreferences()
         readDataStores()
     }
 
-    fun readSharedPreferences() {
-        val prefs = DatastoreInspector.readAllSharedPreferences()
-        if (prefs.isEmpty()) {
-            Log.d(TAG, "No SharedPreferences found.")
-        } else {
-            prefs.forEach { (fileName, entries) ->
-                Log.d(TAG, "File: $fileName")
-                entries.forEach { Log.d(TAG, "${it.key} : ${it.value} Type : ${it.type}") }
-            }
-        }
-    }
+
 
     fun readDataStores() {
         DatastoreInspector.register("user_preferences", prefsDataStore)
