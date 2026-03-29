@@ -27,6 +27,9 @@ class PreferencesDataStoreHandler(private val context: Context) {
         get() = DatastoreInspector.registeredDataStores
 
 
+    fun listDataStores(): List<String> = registeredStores.keys.toList()
+
+
     // List all DataStore files found on disk + registered instances.
     fun listAll(): List<DataStoreInfo> {
         val datastoreDir = File(context.filesDir, "datastore")

@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
 import fi.iki.elonen.NanoHTTPD
+import kotlin.jvm.java
 
 class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port) {
 
@@ -21,7 +22,12 @@ class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port)
             uri.startsWith("/api/sharedprefs/") && session.method == Method.PUT -> handleSharedPrefsPut(
                 session, uri.removePrefix("/api/sharedprefs/"), prefsHandler
             )
-
+            uri == "/api/datastore" && session.method == Method.GET ->
+                json(PreferencesDataStoreHandler(context).listDataStores())
+            uri.startsWith("/api/datastore/") && session.method == Method.GET ->
+                json(PreferencesDataStoreHandler(context).getAll(uri.removePrefix("/api/datastore/")))
+            uri.startsWith("/api/datastore/") && session.method == Method.PUT ->
+                handleDataStorePut(session, uri.removePrefix("/api/datastore/"))
             else -> newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found")
         }
     }
@@ -32,6 +38,15 @@ class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port)
         val body = files["postData"] ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
         val req = Gson().fromJson(body, PutRequest::class.java)
         handler.update(name, req.key, req.value, req.type)
+        return json(emptyMap<String, String>())
+    }
+
+    private fun handleDataStorePut(session: IHTTPSession, name: String): Response {
+        val files = mutableMapOf<String, String>()
+        session.parseBody(files)
+        val body = files["postData"] ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
+        val req = Gson().fromJson(body, PutRequest::class.java)
+        PreferencesDataStoreHandler(context).update(name, req.key, req.value, req.type)
         return json(emptyMap<String, String>())
     }
 
