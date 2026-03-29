@@ -16,8 +16,7 @@ object DatastoreInspector {
     internal val registeredDataStores = mutableMapOf<String, DataStore<Preferences>>()
     internal val registeredProtoDataStores = mutableMapOf<String, ProtoDataStoreHolder<*>>()
     private var server: InspectorServer? = null
-
-
+    private var isRunning = false
 
     // Register a DataStore instance for inspection
     fun register(name: String, dataStore: DataStore<Preferences>): DatastoreInspector {
@@ -39,8 +38,14 @@ object DatastoreInspector {
 
     // Start the inspector. Called automatically via ContentProvider.
     fun start(context: Context, port: Int = 8081) {
+        if (isRunning) {
+            Log.w(TAG, "Inspector already started")
+            return
+        }
+        appContext = context.applicationContext
         server = InspectorServer(context, port)
         server?.start()
+        isRunning = true
         Log.d(TAG, "Server started on port $port")
     }
 

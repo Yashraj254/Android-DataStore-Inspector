@@ -12,6 +12,9 @@ class ProtoDataStoreHandler(private val protoDataStores: Map<String, ProtoDataSt
     companion object {
         private const val TAG = "ProtoDataStoreHandler"
     }
+
+    fun listProtoStores(): List<String> = protoDataStores.keys.toList()
+
     @Suppress("UNCHECKED_CAST")
     fun getAll(name: String): List<ProtoEntry> {
         val holder = protoDataStores[name] as? ProtoDataStoreHolder<Any> ?: return emptyList()
