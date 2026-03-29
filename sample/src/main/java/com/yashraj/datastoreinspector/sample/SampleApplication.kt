@@ -11,7 +11,6 @@ class SampleApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        DatastoreInspector.start(this)
         readDataStores()
     }
 

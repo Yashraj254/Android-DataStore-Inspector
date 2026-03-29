@@ -81,7 +81,7 @@ class PreferencesDataStoreHandler(private val context: Context) {
                 }
             }
         }
-        Log.d("PgInspector", "Updated DataStore: $name[$key] = $value (type: $type)")
+        Log.d(TAG, "Updated DataStore: $name[$key] = $value (type: $type)")
     }
 
     // Delete a key from a registered DataStore with proper type handling

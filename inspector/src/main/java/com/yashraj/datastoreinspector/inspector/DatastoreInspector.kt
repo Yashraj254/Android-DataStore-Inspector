@@ -1,5 +1,6 @@
 package com.yashraj.datastoreinspector.inspector
 
+import android.R.attr.port
 import android.content.Context
 import android.util.Log
 import androidx.datastore.core.DataStore
@@ -14,6 +15,7 @@ object DatastoreInspector {
         private set
     internal val registeredDataStores = mutableMapOf<String, DataStore<Preferences>>()
     internal val registeredProtoDataStores = mutableMapOf<String, ProtoDataStoreHolder<*>>()
+    private var server: InspectorServer? = null
 
 
 
@@ -36,14 +38,15 @@ object DatastoreInspector {
     }
 
     // Start the inspector. Called automatically via ContentProvider.
-    fun start(context: Context) {
-        if (appContext != null) {
-            Log.d(TAG, "Inspector already initialized")
-            return
-        }
+    fun start(context: Context, port: Int = 8081) {
+        server = InspectorServer(context, port)
+        server?.start()
+        Log.d(TAG, "Server started on port $port")
+    }
 
-        appContext = context.applicationContext
-        Log.i(TAG, "Inspector initialized")
+    fun stop() {
+        server?.stop()
+        Log.d(TAG, "Server stopped")
     }
 
 

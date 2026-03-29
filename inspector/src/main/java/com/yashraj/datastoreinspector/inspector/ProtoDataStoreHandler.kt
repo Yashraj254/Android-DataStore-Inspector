@@ -9,12 +9,15 @@ import kotlinx.coroutines.runBlocking
 
 class ProtoDataStoreHandler(private val protoDataStores: Map<String, ProtoDataStoreHolder<*>>) {
 
+    companion object {
+        private const val TAG = "ProtoDataStoreHandler"
+    }
     @Suppress("UNCHECKED_CAST")
     fun getAll(name: String): List<ProtoEntry> {
         val holder = protoDataStores[name] as? ProtoDataStoreHolder<Any> ?: return emptyList()
         val proto = runBlocking { holder.dataStore.data.first() }
         val entries = holder.mapper.toEntries(proto)
-        Log.d("PgInspector", "Proto DataStore: $name, fields: ${entries.size}")
+        Log.d(TAG, "Proto DataStore: $name, fields: ${entries.size}")
         return entries
     }
 
@@ -24,6 +27,6 @@ class ProtoDataStoreHandler(private val protoDataStores: Map<String, ProtoDataSt
         CoroutineScope(Dispatchers.IO).launch {
             holder.dataStore.updateData { old -> holder.mapper.updateField(old, key, value) }
         }
-        Log.d("PgInspector", "Updated Proto DataStore: $name[$key] = $value")
+        Log.d(TAG, "Updated Proto DataStore: $name[$key] = $value")
     }
 }
