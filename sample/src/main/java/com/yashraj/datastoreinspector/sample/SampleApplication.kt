@@ -19,6 +19,6 @@ class SampleApplication : Application() {
 
     fun readDataStores() {
         DatastoreInspector.register("user_preferences", prefsDataStore)
-            .registerProto("user_proto_preferences", protoDataStore, UserPreferencesMapper())
+            .registerProto("user_proto_preferences", protoDataStore, DatastoreInspector.reflectiveProtoMapper())
     }
 }

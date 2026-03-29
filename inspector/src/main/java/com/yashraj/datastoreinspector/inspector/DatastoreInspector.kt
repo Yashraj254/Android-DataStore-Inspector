@@ -65,6 +65,8 @@ object DatastoreInspector {
         }
     }
 
-     fun getProtoDataStores() = registeredProtoDataStores.toMap()
+    fun <T : Any> reflectiveProtoMapper(): ReflectiveProtoMapper<T> = ReflectiveProtoMapper()
+
+    fun getProtoDataStores() = registeredProtoDataStores.toMap()
 
 }
