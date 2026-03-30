@@ -17,6 +17,10 @@ class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port)
         val uri = session.uri
         val prefsHandler = SharedPreferenceHandler(context)
         return when {
+            uri == "/" && session.method == Method.GET -> {
+                val stream = context.assets.open("inspector.html")
+                newChunkedResponse(Response.Status.OK, "text/html", stream)
+            }
             uri == "/api/sharedprefs" && session.method == Method.GET -> json(prefsHandler.listAll())
             uri.startsWith("/api/sharedprefs/") && session.method == Method.GET -> json(prefsHandler.getAllWithTypes(uri.removePrefix("/api/sharedprefs/")))
             uri.startsWith("/api/sharedprefs/") && session.method == Method.PUT -> handleSharedPrefsPut(

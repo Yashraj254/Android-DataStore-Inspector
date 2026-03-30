@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DataStore Inspector</title>
+    <style>
+        :root {
+          --bg: #f5f5f5;
+          --surface: #ffffff;
+          --surface2: #f0f0f0;
+          --border: #ddd;
+          --text: #222;
+          --text-muted: #666;
+          --accent: #1976d2;
+          --accent-hover: #1565c0;
+          --danger: #d32f2f;
+          --danger-hover: #b71c1c;
+          --badge-string: #1565c0;
+          --badge-number: #6a1b9a;
+          --badge-boolean: #e65100;
+          --badge-stringset: #00695c;
+          --badge-enum: #2e7d32;
+          --input-bg: #fff;
+          --input-border: #bbb;
+        }
+        [data-theme="dark"] {
+          --bg: #121212;
+          --surface: #1e1e1e;
+          --surface2: #2a2a2a;
+          --border: #333;
+          --text: #e0e0e0;
+          --text-muted: #888;
+          --accent: #90caf9;
+          --accent-hover: #64b5f6;
+          --danger: #ef9a9a;
+          --danger-hover: #e57373;
+          --badge-string: #90caf9;
+          --badge-number: #ce93d8;
+          --badge-boolean: #ffb74d;
+          --badge-stringset: #80cbc4;
+          --badge-enum: #a5d6a7;
+          --input-bg: #2a2a2a;
+          --input-border: #444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
+        header {
+          display: flex; align-items: center; justify-content: space-between;
+          padding: 12px 20px; background: var(--surface); border-bottom: 1px solid var(--border);
+          position: sticky; top: 0; z-index: 10;
+        }
+        header h1 { font-size: 18px; font-weight: 700; letter-spacing: .5px; }
+        .theme-btn {
+          cursor: pointer; background: var(--surface2); border: 1px solid var(--border);
+          color: var(--text); padding: 6px 12px; border-radius: 6px; font-size: 13px;
+        }
+        .theme-btn:hover { background: var(--border); }
+        .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--surface); padding: 0 20px; }
+        .tab-btn {
+          padding: 10px 20px; cursor: pointer; border: none; background: none;
+          color: var(--text-muted); font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent;
+          margin-bottom: -1px; transition: color .15s, border-color .15s;
+        }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab-btn:hover:not(.active) { color: var(--text); }
+        .tab-panel { display: none; padding: 20px; }
+        .tab-panel.active { display: block; }
+        .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .panel-header { padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-weight: 600; }
+        .file-list { list-style: none; }
+        .file-list li { padding: 10px 16px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .file-list li:last-child { border-bottom: none; }
+        .file-list li:hover { background: var(--surface2); }
+        .file-list li.selected { background: var(--surface2); font-weight: 600; color: var(--accent); }
+        .chip { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+        .empty { padding: 24px 16px; color: var(--text-muted); text-align: center; font-style: italic; }
+        table { width: 100%; border-collapse: collapse; }
+        th { text-align: left; padding: 10px 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); border-bottom: 1px solid var(--border); background: var(--surface2); }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; word-break: break-all; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--surface2); }
+        .badge {
+          display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 7px;
+          border-radius: 10px; color: #fff; white-space: nowrap;
+        }
+        .badge-String { background: var(--badge-string); }
+        .badge-Int, .badge-Long, .badge-Float, .badge-Double { background: var(--badge-number); }
+        .badge-Boolean { background: var(--badge-boolean); }
+        .badge-StringSet { background: var(--badge-stringset); }
+        .badge-Enum { background: var(--badge-enum); }
+        .btn {
+          cursor: pointer; border: none; border-radius: 5px; padding: 5px 10px;
+          font-size: 12px; font-weight: 500; transition: background .15s;
+        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger:hover { background: var(--danger-hover); }
+        .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: var(--border); }
+        .actions { display: flex; gap: 6px; }
+        .toolbar { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        input[type="text"], select {
+          padding: 5px 9px; border: 1px solid var(--input-border); border-radius: 5px;
+          background: var(--input-bg); color: var(--text); font-size: 13px;
+        }
+        input[type="text"]:focus, select:focus { outline: none; border-color: var(--accent); }
+        .inline-edit { display: flex; gap: 4px; align-items: center; }
+        .inline-edit input { flex: 1; min-width: 80px; }
+        .layout { display: grid; grid-template-columns: 220px 1fr; gap: 16px; }
+        @media (max-width: 600px) { .layout { grid-template-columns: 1fr; } }
+        .toast {
+          position: fixed; bottom: 20px; right: 20px; background: #323232; color: #fff;
+          padding: 10px 18px; border-radius: 6px; font-size: 13px; z-index: 999;
+          animation: fadeIn .2s ease; pointer-events: none;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+        .section-gap { margin-top: 16px; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>DataStore Inspector</h1>
+    <button class="theme-btn" id="themeToggle">🌙 Dark</button>
+</header>
+
+<nav class="tabs">
+    <button class="tab-btn active" data-tab="sharedprefs">SharedPrefs</button>
+    <button class="tab-btn" data-tab="datastore">DataStore</button>
+    <button class="tab-btn" data-tab="proto">Proto</button>
+</nav>
+
+<!-- SHARED PREFS TAB -->
+<div class="tab-panel active" id="tab-sharedprefs">
+    <div class="layout">
+        <div class="panel" id="sp-file-panel">
+            <div class="panel-header">Files</div>
+            <ul class="file-list" id="sp-file-list"><li class="empty">Loading…</li></ul>
+        </div>
+        <div>
+            <div class="panel" id="sp-kv-panel" style="display:none">
+                <div class="panel-header" id="sp-kv-title">Keys</div>
+                <div class="toolbar">
+                    <button class="btn btn-ghost" id="sp-refresh-btn">↻ Refresh</button>
+                    <button class="btn btn-danger" id="sp-clear-btn">Clear All</button>
+                </div>
+
+                <table>
+                    <thead><tr><th>Key</th><th>Value</th><th>Type</th><th></th></tr></thead>
+                    <tbody id="sp-kv-body"></tbody>
+                </table>
+                <div class="empty" id="sp-kv-empty" style="display:none">No keys found.</div>
+            </div>
+            <div class="panel" id="sp-select-hint" style="padding:24px; color:var(--text-muted); text-align:center;">
+                Select a file on the left.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DATASTORE TAB  -->
+<div class="tab-panel" id="tab-datastore">
+    <div class="layout">
+        <div class="panel" id="ds-file-panel">
+            <div class="panel-header">Stores</div>
+            <ul class="file-list" id="ds-file-list"><li class="empty">Loading…</li></ul>
+        </div>
+        <div>
+            <div class="panel" id="ds-kv-panel" style="display:none">
+                <div class="panel-header" id="ds-kv-title">Keys</div>
+                <div class="toolbar">
+                    <button class="btn btn-ghost" id="ds-refresh-btn">↻ Refresh</button>
+                    <button class="btn btn-danger" id="ds-clear-btn">Clear All</button>
+                </div>
+                <table>
+                    <thead><tr><th>Key</th><th>Value</th><th>Type</th><th></th></tr></thead>
+                    <tbody id="ds-kv-body"></tbody>
+                </table>
+                <div class="empty" id="ds-kv-empty" style="display:none">No keys found.</div>
+            </div>
+            <div class="panel" id="ds-select-hint" style="padding:24px; color:var(--text-muted); text-align:center;">
+                Select a store on the left.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PROTO TAB -->
+<div class="tab-panel" id="tab-proto">
+    <div class="layout">
+        <div class="panel" id="proto-file-panel">
+            <div class="panel-header">Proto Stores</div>
+            <ul class="file-list" id="proto-file-list"><li class="empty">Loading…</li></ul>
+        </div>
+        <div>
+            <div class="panel" id="proto-kv-panel" style="display:none">
+                <div class="panel-header" id="proto-kv-title">Fields</div>
+                <div class="toolbar">
+                    <button class="btn btn-ghost" id="proto-refresh-btn">↻ Refresh</button>
+                </div>
+                <table>
+                    <thead><tr><th>Field</th><th>Value</th><th>Type</th><th></th></tr></thead>
+                    <tbody id="proto-kv-body"></tbody>
+                </table>
+                <div class="empty" id="proto-kv-empty" style="display:none">No fields found.</div>
+            </div>
+            <div class="panel" id="proto-select-hint" style="padding:24px; color:var(--text-muted); text-align:center;">
+                Select a proto store on the left.
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Theme
+    (function () {
+      const btn = document.getElementById('themeToggle');
+      const saved = localStorage.getItem('ds_theme') || 'light';
+      apply(saved);
+      btn.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        apply(next);
+        localStorage.setItem('ds_theme', next);
+      });
+      function apply(t) {
+        document.documentElement.dataset.theme = t;
+        btn.textContent = t === 'dark' ? '☀️ Light' : '🌙 Dark';
+      }
+    })();
+
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Toast
+    function toast(msg) {
+      const el = document.createElement('div');
+      el.className = 'toast';
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2200);
+    }
+
+    // Helpers
+    function badge(type) {
+      return `<span class="badge badge-${type}">${type}</span>`;
+    }
+
+    function api(url, method, body) {
+      const opts = { method: method || 'GET', headers: {} };
+      if (body) { opts.body = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; }
+      return fetch(url, opts).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+    }
+
+    // SHARED PREFS
+    let spSelected = null;
+
+    function loadSpFiles() {
+      api('/api/sharedprefs').then(files => {
+        const ul = document.getElementById('sp-file-list');
+        if (!files.length) { ul.innerHTML = '<li class="empty">No files found.</li>'; return; }
+        ul.innerHTML = files.map(f =>
+          `<li data-name="${f}"><span class="chip"></span>${f}</li>`
+        ).join('');
+        ul.querySelectorAll('li').forEach(li => {
+          li.addEventListener('click', () => {
+            ul.querySelectorAll('li').forEach(x => x.classList.remove('selected'));
+            li.classList.add('selected');
+            spSelected = li.dataset.name;
+            loadSpKeys(spSelected);
+          });
+        });
+      }).catch(() => toast('Failed to load SharedPrefs files'));
+    }
+
+    function loadSpKeys(name) {
+      document.getElementById('sp-select-hint').style.display = 'none';
+      document.getElementById('sp-kv-panel').style.display = 'block';
+      document.getElementById('sp-kv-title').textContent = name;
+      api('/api/sharedprefs/' + name).then(entries => {
+        renderSpTable(entries, name);
+      }).catch(() => toast('Failed to load keys'));
+    }
+
+    function renderSpTable(entries, name) {
+      const tbody = document.getElementById('sp-kv-body');
+      const empty = document.getElementById('sp-kv-empty');
+      if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      tbody.innerHTML = entries.map(e => `
+        <tr data-key="${esc(e.key)}" data-type="${esc(e.type)}">
+          <td>${esc(e.key)}</td>
+          <td class="val-cell">${esc(e.value)}</td>
+          <td>${badge(e.type)}</td>
+          <td class="actions">
+            <button class="btn btn-ghost sp-edit-btn">Edit</button>
+            <button class="btn btn-danger sp-del-btn">Del</button>
+          </td>
+        </tr>`).join('');
+
+      tbody.querySelectorAll('.sp-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => spStartEdit(btn.closest('tr'), name));
+      });
+      tbody.querySelectorAll('.sp-del-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tr = btn.closest('tr');
+          api('/api/sharedprefs/' + name, 'DELETE', { key: tr.dataset.key })
+            .then(() => { toast('Deleted'); loadSpKeys(name); })
+            .catch(() => toast('Delete failed'));
+        });
+      });
+    }
+
+    function spStartEdit(tr, name) {
+      const key = tr.dataset.key;
+      const type = tr.dataset.type;
+      const currentVal = tr.querySelector('.val-cell').textContent;
+      tr.querySelector('.val-cell').innerHTML =
+        `<div class="inline-edit"><input type="text" class="sp-edit-input" value="${esc(currentVal)}" /></div>`;
+      tr.querySelector('.actions').innerHTML =
+        `<button class="btn btn-primary sp-save-btn">Save</button><button class="btn btn-ghost sp-cancel-btn">✕</button>`;
+      tr.querySelector('.sp-save-btn').addEventListener('click', () => {
+        const val = tr.querySelector('.sp-edit-input').value;
+        api('/api/sharedprefs/' + name, 'PUT', { key, value: val, type })
+          .then(() => { toast('Saved'); loadSpKeys(name); })
+          .catch(() => toast('Save failed'));
+      });
+      tr.querySelector('.sp-cancel-btn').addEventListener('click', () => loadSpKeys(name));
+    }
+
+    document.getElementById('sp-refresh-btn').addEventListener('click', () => spSelected && loadSpKeys(spSelected));
+    document.getElementById('sp-clear-btn').addEventListener('click', () => {
+      if (!spSelected || !confirm('Clear all keys from "' + spSelected + '"?')) return;
+      api('/api/clear/sharedprefs/' + spSelected, 'POST')
+        .then(() => { toast('Cleared'); loadSpKeys(spSelected); })
+        .catch(() => toast('Clear failed'));
+    });
+
+
+    loadSpFiles();
+
+    // DATASTORE
+    let dsSelected = null;
+
+    function loadDsFiles() {
+      api('/api/datastore').then(names => {
+        const ul = document.getElementById('ds-file-list');
+        if (!names.length) { ul.innerHTML = '<li class="empty">No stores found.</li>'; return; }
+        ul.innerHTML = names.map(n =>
+          `<li data-name="${n}"><span class="chip"></span>${n}</li>`
+        ).join('');
+        ul.querySelectorAll('li').forEach(li => {
+          li.addEventListener('click', () => {
+            ul.querySelectorAll('li').forEach(x => x.classList.remove('selected'));
+            li.classList.add('selected');
+            dsSelected = li.dataset.name;
+            loadDsKeys(dsSelected);
+          });
+        });
+      }).catch(() => toast('Failed to load DataStores'));
+    }
+
+    function loadDsKeys(name) {
+      document.getElementById('ds-select-hint').style.display = 'none';
+      document.getElementById('ds-kv-panel').style.display = 'block';
+      document.getElementById('ds-kv-title').textContent = name;
+      api('/api/datastore/' + name).then(entries => {
+        renderDsTable(entries, name);
+      }).catch(() => toast('Failed to load keys'));
+    }
+
+    function renderDsTable(entries, name) {
+      const tbody = document.getElementById('ds-kv-body');
+      const empty = document.getElementById('ds-kv-empty');
+      if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      tbody.innerHTML = entries.map(e => `
+        <tr data-key="${esc(e.key)}" data-type="${esc(e.type)}">
+          <td>${esc(e.key)}</td>
+          <td class="val-cell">${esc(e.value)}</td>
+          <td>${badge(e.type)}</td>
+          <td class="actions">
+            <button class="btn btn-ghost ds-edit-btn">Edit</button>
+            <button class="btn btn-danger ds-del-btn">Del</button>
+          </td>
+        </tr>`).join('');
+
+      tbody.querySelectorAll('.ds-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => dsStartEdit(btn.closest('tr'), name));
+      });
+      tbody.querySelectorAll('.ds-del-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const tr = btn.closest('tr');
+          api('/api/datastore/' + name, 'DELETE', { key: tr.dataset.key, type: tr.dataset.type })
+            .then(() => { toast('Deleted'); loadDsKeys(name); })
+            .catch(() => toast('Delete failed'));
+        });
+      });
+    }
+
+    function dsStartEdit(tr, name) {
+      const key = tr.dataset.key;
+      const type = tr.dataset.type;
+      const currentVal = tr.querySelector('.val-cell').textContent;
+      tr.querySelector('.val-cell').innerHTML =
+        `<div class="inline-edit"><input type="text" class="ds-edit-input" value="${esc(currentVal)}" /></div>`;
+      tr.querySelector('.actions').innerHTML =
+        `<button class="btn btn-primary ds-save-btn">Save</button><button class="btn btn-ghost ds-cancel-btn">✕</button>`;
+      tr.querySelector('.ds-save-btn').addEventListener('click', () => {
+        const val = tr.querySelector('.ds-edit-input').value;
+        api('/api/datastore/' + name, 'PUT', { key, value: val, type })
+          .then(() => { toast('Saved'); loadDsKeys(name); })
+          .catch(() => toast('Save failed'));
+      });
+      tr.querySelector('.ds-cancel-btn').addEventListener('click', () => loadDsKeys(name));
+    }
+
+    document.getElementById('ds-refresh-btn').addEventListener('click', () => dsSelected && loadDsKeys(dsSelected));
+    document.getElementById('ds-clear-btn').addEventListener('click', () => {
+      if (!dsSelected || !confirm('Clear all keys from "' + dsSelected + '"?')) return;
+      api('/api/clear/datastore/' + dsSelected, 'POST')
+        .then(() => { toast('Cleared'); loadDsKeys(dsSelected); })
+        .catch(() => toast('Clear failed'));
+    });
+
+    loadDsFiles();
+
+    // PROTO
+    let protoSelected = null;
+
+    function loadProtoFiles() {
+      api('/api/proto').then(names => {
+        const ul = document.getElementById('proto-file-list');
+        if (!names.length) { ul.innerHTML = '<li class="empty">No proto stores found.</li>'; return; }
+        ul.innerHTML = names.map(n =>
+          `<li data-name="${n}"><span class="chip"></span>${n}</li>`
+        ).join('');
+        ul.querySelectorAll('li').forEach(li => {
+          li.addEventListener('click', () => {
+            ul.querySelectorAll('li').forEach(x => x.classList.remove('selected'));
+            li.classList.add('selected');
+            protoSelected = li.dataset.name;
+            loadProtoFields(protoSelected);
+          });
+        });
+      }).catch(() => toast('Failed to load proto stores'));
+    }
+
+    function loadProtoFields(name) {
+      document.getElementById('proto-select-hint').style.display = 'none';
+      document.getElementById('proto-kv-panel').style.display = 'block';
+      document.getElementById('proto-kv-title').textContent = name;
+      api('/api/proto/' + name).then(entries => {
+        renderProtoTable(entries, name);
+      }).catch(() => toast('Failed to load fields'));
+    }
+
+    function renderProtoTable(entries, name) {
+      const tbody = document.getElementById('proto-kv-body');
+      const empty = document.getElementById('proto-kv-empty');
+      if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      tbody.innerHTML = entries.map(e => `
+        <tr data-key="${esc(e.key)}">
+          <td>${esc(e.key)}</td>
+          <td class="val-cell">${esc(e.value)}</td>
+          <td>${badge(e.type)}</td>
+          <td class="actions">
+            <button class="btn btn-ghost proto-edit-btn">Edit</button>
+          </td>
+        </tr>`).join('');
+
+      tbody.querySelectorAll('.proto-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => protoStartEdit(btn.closest('tr'), name));
+      });
+    }
+
+    function protoStartEdit(tr, name) {
+      const key = tr.dataset.key;
+      const currentVal = tr.querySelector('.val-cell').textContent;
+      tr.querySelector('.val-cell').innerHTML =
+        `<div class="inline-edit"><input type="text" class="proto-edit-input" value="${esc(currentVal)}" /></div>`;
+      tr.querySelector('.actions').innerHTML =
+        `<button class="btn btn-primary proto-save-btn">Save</button><button class="btn btn-ghost proto-cancel-btn">✕</button>`;
+      tr.querySelector('.proto-save-btn').addEventListener('click', () => {
+        const val = tr.querySelector('.proto-edit-input').value;
+        api('/api/proto/' + name, 'PUT', { key, value: val })
+          .then(() => { toast('Saved'); loadProtoFields(name); })
+          .catch(() => toast('Save failed'));
+      });
+      tr.querySelector('.proto-cancel-btn').addEventListener('click', () => loadProtoFields(name));
+    }
+
+    document.getElementById('proto-refresh-btn').addEventListener('click', () => protoSelected && loadProtoFields(protoSelected));
+
+    loadProtoFiles();
+
+    // XSS-safe escape
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+</script>
+</body>
+</html>
