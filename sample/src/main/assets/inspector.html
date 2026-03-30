@@ -256,7 +256,7 @@
 
     function api(url, method, body) {
       const opts = { method: method || 'GET', headers: {} };
-      if (body) { opts.body = JSON.stringify(body); opts.headers['Content-Type'] = 'application/json'; }
+      if (body) { opts.body = JSON.stringify(body);  }
       return fetch(url, opts).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
     }
 

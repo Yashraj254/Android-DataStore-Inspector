@@ -26,6 +26,12 @@ class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port)
             uri.startsWith("/api/sharedprefs/") && session.method == Method.PUT -> handleSharedPrefsPut(
                 session, uri.removePrefix("/api/sharedprefs/"), prefsHandler
             )
+            uri.startsWith("/api/sharedprefs/") && session.method == Method.DELETE ->
+                handleSharedPrefsDelete(session, uri.removePrefix("/api/sharedprefs/"), prefsHandler)
+            uri.startsWith("/api/clear/sharedprefs/") && session.method == Method.POST -> {
+                prefsHandler.clear(uri.removePrefix("/api/clear/sharedprefs/"))
+                json(emptyMap<String, String>())
+            }
 
             uri == "/api/datastore" && session.method == Method.GET ->
                 json(PreferencesDataStoreHandler(context).listDataStores())
@@ -33,6 +39,12 @@ class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port)
                 json(PreferencesDataStoreHandler(context).getAll(uri.removePrefix("/api/datastore/")))
             uri.startsWith("/api/datastore/") && session.method == Method.PUT ->
                 handleDataStorePut(session, uri.removePrefix("/api/datastore/"))
+            uri.startsWith("/api/datastore/") && session.method == Method.DELETE ->
+                handleDataStoreDelete(session, uri.removePrefix("/api/datastore/"))
+            uri.startsWith("/api/clear/datastore/") && session.method == Method.POST -> {
+                PreferencesDataStoreHandler(context).clear(uri.removePrefix("/api/clear/datastore/"))
+                json(emptyMap<String, String>())
+            }
 
             uri == "/api/proto" && session.method == Method.GET ->
                 json(ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores()).listProtoStores())
@@ -46,30 +58,51 @@ class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port)
     }
 
     private fun handleSharedPrefsPut(session: IHTTPSession, name: String, handler: SharedPreferenceHandler): Response {
-        val files = mutableMapOf<String, String>()
-        session.parseBody(files)
-        val body = files["postData"] ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = Gson().fromJson(body, PutRequest::class.java)
+        val body = readBody(session) ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
+        val req = Gson().fromJson(body, InspectorServer.PutRequest::class.java)
         handler.update(name, req.key, req.value, req.type)
         return json(emptyMap<String, String>())
     }
 
+    private fun handleSharedPrefsDelete(session: IHTTPSession, name: String, handler: SharedPreferenceHandler): Response {
+        val body = readBody(session) ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
+        val req = Gson().fromJson(body, DeleteRequest::class.java)
+        handler.delete(name, req.key)
+        return json(emptyMap<String, String>())
+    }
+
     private fun handleDataStorePut(session: IHTTPSession, name: String): Response {
-        val files = mutableMapOf<String, String>()
-        session.parseBody(files)
-        val body = files["postData"] ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = Gson().fromJson(body, PutRequest::class.java)
+        val body = readBody(session) ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
+        val req = Gson().fromJson(body, InspectorServer.PutRequest::class.java)
         PreferencesDataStoreHandler(context).update(name, req.key, req.value, req.type)
         return json(emptyMap<String, String>())
     }
 
+    private fun handleDataStoreDelete(session: IHTTPSession, name: String): Response {
+        val body = readBody(session) ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
+        val req = Gson().fromJson(body, TypedDeleteRequest::class.java)
+        PreferencesDataStoreHandler(context).delete(name, req.key, req.type)
+        return json(emptyMap<String, String>())
+    }
+
     private fun handleProtoPut(session: IHTTPSession, name: String): Response {
-        val files = mutableMapOf<String, String>()
-        session.parseBody(files)
-        val body = files["postData"] ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = Gson().fromJson(body, ProtoUpdateRequest::class.java)
+        val body = readBody(session) ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
+        val req = Gson().fromJson(body, InspectorServer.ProtoUpdateRequest::class.java)
         ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores()).update(name, req.key, req.value)
         return json(emptyMap<String, String>())
+    }
+
+    private fun readBody(session: IHTTPSession): String? {
+        val len = session.headers["content-length"]?.toIntOrNull() ?: return null
+        if (len == 0) return null
+        val buf = ByteArray(len)
+        var offset = 0
+        while (offset < len) {
+            val read = session.inputStream.read(buf, offset, len - offset)
+            if (read == -1) break
+            offset += read
+        }
+        return String(buf, 0, offset)
     }
 
     private fun json(data: Any): Response =
@@ -79,4 +112,6 @@ class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port)
 
     private data class ProtoUpdateRequest(val key: String, val value: String)
 
+    private data class DeleteRequest(val key: String)
+    private data class TypedDeleteRequest(val key: String, val type: String)
 }

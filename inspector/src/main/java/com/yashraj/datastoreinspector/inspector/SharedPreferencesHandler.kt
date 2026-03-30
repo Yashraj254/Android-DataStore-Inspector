@@ -58,6 +58,10 @@ class SharedPreferenceHandler(private val context: Context) {
         Log.d(TAG, "Deleted SharedPrefs key: $name[$key]")
     }
 
+    fun clear(name: String) {
+        context.getSharedPreferences(name, Context.MODE_PRIVATE).edit { clear() }
+        Log.d(TAG, "Cleared SharedPrefs: $name")
+    }
     private fun getType(value: Any?): String {
         return when (value) {
             is String -> "String"

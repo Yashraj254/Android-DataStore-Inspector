@@ -9,6 +9,7 @@ class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
                 val returnType = method.returnType
                 name.startsWith("get")
                         && method.parameterCount == 0
+                        && !java.lang.reflect.Modifier.isStatic(method.modifiers)
                         && !name.endsWith("Bytes")
                         && !name.endsWith("Count")
                         && !name.endsWith("List")
@@ -46,7 +47,7 @@ class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
         }
         setter.invoke(builder, typedValue)
         @Suppress("UNCHECKED_CAST")
-        return proto.javaClass.getMethod("build").invoke(builder) as T
+        return builder.javaClass.getMethod("build").invoke(builder) as T
     }
 
     private fun camelToSnake(name: String): String =
