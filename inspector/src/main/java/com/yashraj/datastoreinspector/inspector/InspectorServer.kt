@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
 import fi.iki.elonen.NanoHTTPD
-import kotlin.jvm.java
 
 class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port) {
 
@@ -21,35 +20,44 @@ class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port)
                 val stream = context.assets.open("inspector.html")
                 newChunkedResponse(Response.Status.OK, "text/html", stream)
             }
+
             uri == "/api/sharedprefs" && session.method == Method.GET -> json(prefsHandler.listAll())
             uri.startsWith("/api/sharedprefs/") && session.method == Method.GET -> json(prefsHandler.getAllWithTypes(uri.removePrefix("/api/sharedprefs/")))
             uri.startsWith("/api/sharedprefs/") && session.method == Method.PUT -> handleSharedPrefsPut(
                 session, uri.removePrefix("/api/sharedprefs/"), prefsHandler
             )
+
             uri.startsWith("/api/sharedprefs/") && session.method == Method.DELETE ->
                 handleSharedPrefsDelete(session, uri.removePrefix("/api/sharedprefs/"), prefsHandler)
+
             uri.startsWith("/api/clear/sharedprefs/") && session.method == Method.POST -> {
                 prefsHandler.clear(uri.removePrefix("/api/clear/sharedprefs/"))
                 json(emptyMap<String, String>())
             }
 
             uri == "/api/datastore" && session.method == Method.GET ->
-                json(PreferencesDataStoreHandler(context).listDataStores())
+                json(PreferencesDataStoreHandler(DatastoreInspector.getDataStores()).listDataStores())
+
             uri.startsWith("/api/datastore/") && session.method == Method.GET ->
-                json(PreferencesDataStoreHandler(context).getAll(uri.removePrefix("/api/datastore/")))
+                json(PreferencesDataStoreHandler(DatastoreInspector.getDataStores()).getAll(uri.removePrefix("/api/datastore/")))
+
             uri.startsWith("/api/datastore/") && session.method == Method.PUT ->
                 handleDataStorePut(session, uri.removePrefix("/api/datastore/"))
+
             uri.startsWith("/api/datastore/") && session.method == Method.DELETE ->
                 handleDataStoreDelete(session, uri.removePrefix("/api/datastore/"))
+
             uri.startsWith("/api/clear/datastore/") && session.method == Method.POST -> {
-                PreferencesDataStoreHandler(context).clear(uri.removePrefix("/api/clear/datastore/"))
+                PreferencesDataStoreHandler(DatastoreInspector.getDataStores()).clear(uri.removePrefix("/api/clear/datastore/"))
                 json(emptyMap<String, String>())
             }
 
             uri == "/api/proto" && session.method == Method.GET ->
                 json(ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores()).listProtoStores())
+
             uri.startsWith("/api/proto/") && session.method == Method.GET ->
                 json(ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores()).getAll(uri.removePrefix("/api/proto/")))
+
             uri.startsWith("/api/proto/") && session.method == Method.PUT ->
                 handleProtoPut(session, uri.removePrefix("/api/proto/"))
 
@@ -74,14 +82,14 @@ class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port)
     private fun handleDataStorePut(session: IHTTPSession, name: String): Response {
         val body = readBody(session) ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
         val req = Gson().fromJson(body, InspectorServer.PutRequest::class.java)
-        PreferencesDataStoreHandler(context).update(name, req.key, req.value, req.type)
+        PreferencesDataStoreHandler(DatastoreInspector.getDataStores()).update(name, req.key, req.value, req.type)
         return json(emptyMap<String, String>())
     }
 
     private fun handleDataStoreDelete(session: IHTTPSession, name: String): Response {
         val body = readBody(session) ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
         val req = Gson().fromJson(body, TypedDeleteRequest::class.java)
-        PreferencesDataStoreHandler(context).delete(name, req.key, req.type)
+        PreferencesDataStoreHandler(DatastoreInspector.getDataStores()).delete(name, req.key, req.type)
         return json(emptyMap<String, String>())
     }
 

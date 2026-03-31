@@ -4,13 +4,16 @@ import android.content.Context
 import android.util.Log
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
 object DatastoreInspector {
 
     private const val TAG = "DatastoreInspector"
 
-    internal var appContext: Context? = null
-        private set
+
     internal val registeredDataStores = mutableMapOf<String, DataStore<Preferences>>()
     internal val registeredProtoDataStores = mutableMapOf<String, ProtoDataStoreHolder<*>>()
     private var server: InspectorServer? = null
@@ -23,13 +26,13 @@ object DatastoreInspector {
         return this
     }
 
-    // Register a Proto DataStore instance for inspection. Provide a mapper to define how fields are read and written.
-    fun <T> registerProto(
+    // Register a Proto DataStore instance for inspection.
+    fun <T : Any> registerProto(
         name: String,
-        dataStore: DataStore<T>,
-        mapper: ProtoInspectorMapper<T>
+        dataStore: DataStore<T>
     ): DatastoreInspector {
-        registeredProtoDataStores[name] = ProtoDataStoreHolder(dataStore, mapper)
+        // Use a default reflective mapper
+        registeredProtoDataStores[name] = ProtoDataStoreHolder(dataStore, ReflectiveProtoMapper())
         Log.d(TAG, "Registered Proto DataStore: $name")
         return this
     }
@@ -40,20 +43,23 @@ object DatastoreInspector {
             Log.w(TAG, "Inspector already started")
             return
         }
-        appContext = context.applicationContext
-        server = InspectorServer(context, port)
+        server = InspectorServer(context.applicationContext, port)
         server?.start()
         isRunning = true
         Log.d(TAG, "Server started on port $port")
     }
 
-    fun stop() {
-        server?.stop()
-        Log.d(TAG, "Server stopped")
-    }
+//    fun stop() {
+//        server?.stop()
+//        scope.cancel()
+//        Log.d(TAG, "Server stopped")
+//    }
 
-    fun <T : Any> reflectiveProtoMapper(): ReflectiveProtoMapper<T> = ReflectiveProtoMapper()
+     internal fun getDataStores() = registeredDataStores.toMap()
 
-    fun getProtoDataStores() = registeredProtoDataStores.toMap()
+     internal fun getProtoDataStores() = registeredProtoDataStores.toMap()
+
+    internal val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
 
 }
