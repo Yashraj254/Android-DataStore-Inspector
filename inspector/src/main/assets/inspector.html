@@ -77,7 +77,9 @@
         .empty { padding: 24px 16px; color: var(--text-muted); text-align: center; font-style: italic; }
         table { width: 100%; border-collapse: collapse; }
         th { text-align: left; padding: 10px 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-muted); border-bottom: 1px solid var(--border); background: var(--surface2); }
-        td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; word-break: break-all; }
+        td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        .val-cell { word-break: break-all; }
+        tr td:first-child { white-space: nowrap; }
         tr:last-child td { border-bottom: none; }
         tr:hover td { background: var(--surface2); }
         .badge {
@@ -99,7 +101,8 @@
         .btn-danger:hover { background: var(--danger-hover); }
         .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
         .btn-ghost:hover { background: var(--border); }
-        .actions { display: flex; gap: 6px; }
+        .actions { white-space: nowrap; width: 1%; }
+        .actions .btn + .btn { margin-left: 6px; }
         .toolbar { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         input[type="text"], select {
           padding: 5px 9px; border: 1px solid var(--input-border); border-radius: 5px;
@@ -117,6 +120,33 @@
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .section-gap { margin-top: 16px; }
+
+        // Error dialog
+        .modal-overlay {
+          position: fixed; inset: 0; background: rgba(0,0,0,.45);
+          display: flex; align-items: center; justify-content: center; z-index: 1000;
+        }
+        .modal {
+          background: var(--surface); border: 1px solid var(--border);
+          border-radius: 12px; padding: 28px 24px 20px; max-width: 400px; width: 90%;
+          box-shadow: 0 12px 40px rgba(0,0,0,.3); animation: modalIn .18s ease;
+        }
+        @keyframes modalIn {
+          from { opacity: 0; transform: scale(.94) translateY(-8px); }
+          to   { opacity: 1; transform: scale(1)  translateY(0); }
+        }
+        .modal-icon  { font-size: 30px; margin-bottom: 10px; }
+        .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; color: var(--danger); }
+        .modal-meta  {
+          font-size: 11px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase;
+          color: var(--text-muted); margin-bottom: 6px;
+        }
+        .modal-msg {
+          font-size: 13px; color: var(--text); line-height: 1.6; word-break: break-word;
+          background: var(--surface2); border: 1px solid var(--border);
+          border-radius: 6px; padding: 10px 12px; margin-bottom: 20px;
+        }
+        .modal-actions { display: flex; justify-content: flex-end; }
     </style>
 </head>
 <body>
@@ -254,10 +284,41 @@
       return `<span class="badge badge-${type}">${type}</span>`;
     }
 
-    function api(url, method, body) {
+    async function api(url, method, body) {
       const opts = { method: method || 'GET', headers: {} };
-      if (body) { opts.body = JSON.stringify(body);  }
-      return fetch(url, opts).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+      if (body) { opts.body = JSON.stringify(body); }
+      const r = await fetch(url, opts);
+      if (!r.ok) {
+        let msg = `Server returned HTTP ${r.status}`;
+        try { const data = await r.json(); if (data.error) msg = data.error; } catch {}
+        throw new Error(msg);
+      }
+      return r.json();
+    }
+
+    function showErrorDialog(key, type, enteredValue, reason) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal" role="alertdialog" aria-modal="true">
+          <div class="modal-icon">⚠️</div>
+          <div class="modal-title">Invalid Value</div>
+          <div class="modal-meta">Field · Type</div>
+          <div class="modal-msg">
+            <strong>${esc(key)}</strong> expects a <strong>${esc(type)}</strong> value,
+            but <code>"${esc(enteredValue)}"</code> could not be parsed as one.<br><br>
+            ${esc(reason)}
+          </div>
+          <div class="modal-actions">
+            <button class="btn btn-primary" id="modal-ok">OK</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      overlay.querySelector('#modal-ok').focus();
+      const close = () => overlay.remove();
+      overlay.querySelector('#modal-ok').addEventListener('click', close);
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+      overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
     }
 
     // SHARED PREFS
@@ -278,6 +339,7 @@
             loadSpKeys(spSelected);
           });
         });
+        ul.querySelector('li').click();
       }).catch(() => toast('Failed to load SharedPrefs files'));
     }
 
@@ -331,7 +393,7 @@
         const val = tr.querySelector('.sp-edit-input').value;
         api('/api/sharedprefs/' + name, 'PUT', { key, value: val, type })
           .then(() => { toast('Saved'); loadSpKeys(name); })
-          .catch(() => toast('Save failed'));
+          .catch(err => showErrorDialog(key, type, val, err.message));
       });
       tr.querySelector('.sp-cancel-btn').addEventListener('click', () => loadSpKeys(name));
     }
@@ -365,6 +427,7 @@
             loadDsKeys(dsSelected);
           });
         });
+        ul.querySelector('li').click();
       }).catch(() => toast('Failed to load DataStores'));
     }
 
@@ -418,7 +481,7 @@
         const val = tr.querySelector('.ds-edit-input').value;
         api('/api/datastore/' + name, 'PUT', { key, value: val, type })
           .then(() => { toast('Saved'); loadDsKeys(name); })
-          .catch(() => toast('Save failed'));
+          .catch(err => showErrorDialog(key, type, val, err.message));
       });
       tr.querySelector('.ds-cancel-btn').addEventListener('click', () => loadDsKeys(name));
     }
@@ -451,6 +514,7 @@
             loadProtoFields(protoSelected);
           });
         });
+        ul.querySelector('li').click();
       }).catch(() => toast('Failed to load proto stores'));
     }
 
@@ -469,7 +533,7 @@
       if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
       empty.style.display = 'none';
       tbody.innerHTML = entries.map(e => `
-        <tr data-key="${esc(e.key)}">
+        <tr data-key="${esc(e.key)}" data-type="${esc(e.type)}">
           <td>${esc(e.key)}</td>
           <td class="val-cell">${esc(e.value)}</td>
           <td>${badge(e.type)}</td>
@@ -485,6 +549,7 @@
 
     function protoStartEdit(tr, name) {
       const key = tr.dataset.key;
+      const type = tr.dataset.type;
       const currentVal = tr.querySelector('.val-cell').textContent;
       tr.querySelector('.val-cell').innerHTML =
         `<div class="inline-edit"><input type="text" class="proto-edit-input" value="${esc(currentVal)}" /></div>`;
@@ -494,7 +559,7 @@
         const val = tr.querySelector('.proto-edit-input').value;
         api('/api/proto/' + name, 'PUT', { key, value: val })
           .then(() => { toast('Saved'); loadProtoFields(name); })
-          .catch(() => toast('Save failed'));
+          .catch(err => showErrorDialog(key, type, val, err.message));
       });
       tr.querySelector('.proto-cancel-btn').addEventListener('click', () => loadProtoFields(name));
     }

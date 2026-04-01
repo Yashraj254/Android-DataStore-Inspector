@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
 import fi.iki.elonen.NanoHTTPD
+import kotlin.jvm.java
 
 class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port) {
 
@@ -67,7 +68,8 @@ class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port)
 
     private fun handleSharedPrefsPut(session: IHTTPSession, name: String, handler: SharedPreferenceHandler): Response {
         val body = readBody(session) ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = Gson().fromJson(body, InspectorServer.PutRequest::class.java)
+        val req = Gson().fromJson(body, PutRequest::class.java)
+        validateValue(req.value, req.type)?.let { return error400("Type mismatch for '${req.key}': $it") }
         handler.update(name, req.key, req.value, req.type)
         return json(emptyMap<String, String>())
     }
@@ -81,7 +83,8 @@ class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port)
 
     private fun handleDataStorePut(session: IHTTPSession, name: String): Response {
         val body = readBody(session) ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = Gson().fromJson(body, InspectorServer.PutRequest::class.java)
+        val req = Gson().fromJson(body, PutRequest::class.java)
+        validateValue(req.value, req.type)?.let { return error400("Type mismatch for '${req.key}': $it") }
         PreferencesDataStoreHandler(DatastoreInspector.getDataStores()).update(name, req.key, req.value, req.type)
         return json(emptyMap<String, String>())
     }
@@ -94,11 +97,40 @@ class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port)
     }
 
     private fun handleProtoPut(session: IHTTPSession, name: String): Response {
-        val body = readBody(session) ?: return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = Gson().fromJson(body, InspectorServer.ProtoUpdateRequest::class.java)
-        ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores()).update(name, req.key, req.value)
+        val body = readBody(session) ?: return error400("Missing request body")
+        val req = Gson().fromJson(body, ProtoUpdateRequest::class.java)
+        val handler = ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores())
+        // Look up the declared field type so we can validate before writing
+        val fieldType = handler.getAll(name).firstOrNull { it.key == req.key }?.type
+        if (fieldType != null) {
+            validateValue(req.value, fieldType)?.let { return error400("Type mismatch for '${req.key}': $it") }
+        }
+        handler.update(name, req.key, req.value)
         return json(emptyMap<String, String>())
     }
+
+
+    /**
+     * Returns a human-readable error string if [value] cannot be parsed as [type], null if valid.
+     * String, StringSet, and Enum types are not validated here — they accept any string input.
+     */
+    private fun validateValue(value: String, type: String): String? = when (type) {
+        "Int"     -> if (value.toIntOrNull() == null)
+            "\"$value\" is not a valid Int" else null
+        "Long"    -> if (value.toLongOrNull() == null)
+            "\"$value\" is not a valid Long" else null
+        "Float"   -> if (value.toFloatOrNull() == null)
+            "\"$value\" is not a valid Float" else null
+        "Double"  -> if (value.toDoubleOrNull() == null)
+            "\"$value\" is not a valid Double" else null
+        "Boolean" -> if (value != "true" && value != "false")
+            "\"$value\" is not a valid Boolean — must be \"true\" or \"false\"" else null
+        else      -> null  // String, StringSet, Enum — accept as-is
+    }
+
+    private fun error400(message: String): Response =
+        newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json",
+            Gson().toJson(mapOf("error" to message)))
 
     private fun readBody(session: IHTTPSession): String? {
         val len = session.headers["content-length"]?.toIntOrNull() ?: return null
