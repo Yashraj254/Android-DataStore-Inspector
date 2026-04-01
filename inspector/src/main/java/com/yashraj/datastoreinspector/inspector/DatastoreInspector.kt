@@ -2,6 +2,7 @@ package com.yashraj.datastoreinspector.inspector
 
 import android.content.Context
 import android.util.Log
+import android.widget.Toast
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import kotlinx.coroutines.CoroutineScope
@@ -12,7 +13,6 @@ import kotlinx.coroutines.cancel
 object DatastoreInspector {
 
     private const val TAG = "DatastoreInspector"
-
 
     internal val registeredDataStores = mutableMapOf<String, DataStore<Preferences>>()
     internal val registeredProtoDataStores = mutableMapOf<String, ProtoDataStoreHolder<*>>()
@@ -38,14 +38,22 @@ object DatastoreInspector {
     }
 
     // Start the inspector. Called automatically via ContentProvider.
-    fun start(context: Context, port: Int = 8081) {
+    fun start(context: Context, port: Int = 3000) {
         if (isRunning) {
             Log.w(TAG, "Inspector already started")
             return
         }
-        server = InspectorServer(context.applicationContext, port)
-        server?.start()
-        isRunning = true
+        try {
+            server = InspectorServer(context.applicationContext, port)
+            server?.start()
+            isRunning = true
+            Toast.makeText(context.applicationContext, "Datastore Inspector started on port $port", Toast.LENGTH_SHORT).show()
+        } catch (e: java.net.BindException) {
+            Toast.makeText(context.applicationContext, "Port $port is already in use", Toast.LENGTH_LONG).show()
+            Log.e(TAG, "Port $port is already in use. Please choose a different port.")
+            return
+        }
+
         Log.d(TAG, "Server started on port $port")
     }
 

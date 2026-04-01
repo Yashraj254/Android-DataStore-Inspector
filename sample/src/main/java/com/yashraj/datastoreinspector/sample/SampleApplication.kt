@@ -15,6 +15,7 @@ class SampleApplication : Application() {
     }
 
     fun readDataStores() {
+        DatastoreInspector.start(this)
         DatastoreInspector.register("user_preferences", prefsDataStore)
             .registerProto("user_prefs", protoDataStore)
     }
