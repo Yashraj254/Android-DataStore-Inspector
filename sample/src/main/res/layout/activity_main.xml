@@ -39,6 +39,14 @@
                 android:layout_marginBottom="32dp"
                 android:lineSpacingExtra="4dp"/>
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAddRandomField"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="32dp"
+                android:text="Add Random Field"
+                android:textAllCaps="false" />
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

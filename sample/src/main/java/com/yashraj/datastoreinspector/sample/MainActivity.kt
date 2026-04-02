@@ -18,6 +18,7 @@ import com.yashraj.datastoreinspector.sample.proto.UserPreferences
 import com.yashraj.datastoreinspector.sample.proto.copy
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 val Context.prefsDataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
 val Context.protoDataStore: DataStore<UserPreferences> by dataStore(
@@ -29,6 +30,15 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
+
+        private val RANDOM_KEYS = listOf(
+            "city", "country", "age", "nickname", "language",
+            "theme", "timezone", "occupation", "website", "bio"
+        )
+        private val RANDOM_VALUES = listOf(
+            "New York", "India", "42", "johnny", "English",
+            "dark", "UTC+5:30", "Engineer", "example.com", "Hello world"
+        )
     }
 
     private val PREFS_NAME = "user_shared_prefs"
@@ -55,6 +65,26 @@ class MainActivity : AppCompatActivity() {
         loadFromSharedPrefs()
         observePreferencesDataStore()
         observeProtoDataStore()
+
+        binding.btnAddRandomField.setOnClickListener {
+            addRandomField()
+        }
+    }
+
+    private fun addRandomField() {
+        val index = Random.nextInt(RANDOM_KEYS.size)
+        val key = RANDOM_KEYS[index]
+        val value = RANDOM_VALUES[index]
+
+        val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        sharedPreferences.edit().putString(key, value).apply()
+        loadFromSharedPrefs()
+
+        lifecycleScope.launch {
+            prefsDataStore.edit { prefs ->
+                prefs[stringPreferencesKey(key)] = value
+            }
+        }
     }
 
     private fun saveToSharedPrefs() {
@@ -68,38 +98,27 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadFromSharedPrefs() {
         val sharedPreferences = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-        val username = sharedPreferences.getString("username", "N/A")
-        val email = sharedPreferences.getString("email", "N/A")
-        val number = sharedPreferences.getString("number", "N/A")
-        binding.tvSharedPrefs.text = "Username: $username\nEmail: $email\nNumber: $number\n"
+        val text = sharedPreferences.all.entries
+            .joinToString("\n") { (k, v) -> "$k: $v" }
+        binding.tvSharedPrefs.text = text.ifEmpty { "No data" }
     }
 
     private fun saveToPreferencesDataStore() {
         lifecycleScope.launch {
-            val usernameKey = stringPreferencesKey("username")
-            val emailKey = stringPreferencesKey("email")
-            val numberKey = stringPreferencesKey("number")
-
             prefsDataStore.edit { prefs ->
-                prefs[usernameKey] = "JohnDoe_PrefsDS"
-                prefs[emailKey] = "john.prefs@example.com"
-                prefs[numberKey] = "0987654321"
+                prefs[stringPreferencesKey("username")] = "JohnDoe_PrefsDS"
+                prefs[stringPreferencesKey("email")] = "john.prefs@example.com"
+                prefs[stringPreferencesKey("number")] = "0987654321"
             }
         }
     }
 
     private fun observePreferencesDataStore() {
         lifecycleScope.launch {
-            val usernameKey = stringPreferencesKey("username")
-            val emailKey = stringPreferencesKey("email")
-            val numberKey = stringPreferencesKey("number")
-
             prefsDataStore.data.collectLatest { prefs ->
-                val username = prefs[usernameKey] ?: "N/A"
-                val email = prefs[emailKey] ?: "N/A"
-                val number = prefs[numberKey] ?: "N/A"
-
-                binding.tvPrefsDataStore.text = "Username: $username\nEmail: $email\nNumber: $number\n"
+                val text = prefs.asMap().entries
+                    .joinToString("\n") { (k, v) -> "${k.name}: $v" }
+                binding.tvPrefsDataStore.text = text.ifEmpty { "No data" }
             }
         }
     }
