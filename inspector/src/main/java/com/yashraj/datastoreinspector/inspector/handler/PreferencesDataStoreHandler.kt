@@ -1,4 +1,4 @@
-package com.yashraj.datastoreinspector.inspector
+package com.yashraj.datastoreinspector.inspector.handler
 
 import android.util.Log
 import androidx.datastore.core.DataStore
@@ -10,6 +10,8 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.yashraj.datastoreinspector.inspector.DatastoreInspector
+import com.yashraj.datastoreinspector.inspector.model.DataStoreEntry
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -100,8 +102,3 @@ class PreferencesDataStoreHandler(private val dataStores: Map<String, DataStore<
 }
 
 
-data class DataStoreEntry(
-    val key: String,
-    val value: Any?,
-    val type: String
-)

@@ -1,4 +1,6 @@
-package com.yashraj.datastoreinspector.inspector
+package com.yashraj.datastoreinspector.inspector.proto
+
+import java.lang.reflect.Modifier
 
 class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
 
@@ -9,7 +11,7 @@ class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
                 val returnType = method.returnType
                 name.startsWith("get")
                         && method.parameterCount == 0
-                        && !java.lang.reflect.Modifier.isStatic(method.modifiers)
+                        && !Modifier.isStatic(method.modifiers)
                         && !name.endsWith("Bytes")
                         && !name.endsWith("Count")
                         && !name.endsWith("List")

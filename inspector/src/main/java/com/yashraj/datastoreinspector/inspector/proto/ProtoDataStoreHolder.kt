@@ -1,4 +1,4 @@
-package com.yashraj.datastoreinspector.inspector
+package com.yashraj.datastoreinspector.inspector.proto
 
 import androidx.datastore.core.DataStore
 

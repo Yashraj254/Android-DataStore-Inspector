@@ -1,10 +1,11 @@
-package com.yashraj.datastoreinspector.inspector
+package com.yashraj.datastoreinspector.inspector.handler
 
 import android.content.Context
 import android.util.Log
 import java.io.File
 import androidx.core.content.edit
 import com.google.gson.Gson
+import com.yashraj.datastoreinspector.inspector.model.PreferenceEntry
 
 class SharedPreferenceHandler(private val context: Context) {
 
@@ -76,8 +77,3 @@ class SharedPreferenceHandler(private val context: Context) {
     }
 }
 
-data class PreferenceEntry(
-    val key: String,
-    val value: Any?,
-    val type: String
-)

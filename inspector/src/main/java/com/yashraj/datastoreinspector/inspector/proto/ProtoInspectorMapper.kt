@@ -1,4 +1,4 @@
-package com.yashraj.datastoreinspector.inspector
+package com.yashraj.datastoreinspector.inspector.proto
 
 interface ProtoInspectorMapper<T> {
     fun toEntries(proto: T): List<ProtoEntry>

@@ -1,10 +1,13 @@
-package com.yashraj.datastoreinspector.inspector
+package com.yashraj.datastoreinspector.inspector.server
 
 import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
+import com.yashraj.datastoreinspector.inspector.DatastoreInspector
+import com.yashraj.datastoreinspector.inspector.handler.PreferencesDataStoreHandler
+import com.yashraj.datastoreinspector.inspector.handler.ProtoDataStoreHandler
+import com.yashraj.datastoreinspector.inspector.handler.SharedPreferenceHandler
 import fi.iki.elonen.NanoHTTPD
-import kotlin.jvm.java
 
 class InspectorServer(private val context: Context, port: Int) : NanoHTTPD(port) {
 
