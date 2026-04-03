@@ -1,13 +1,9 @@
 package com.yashraj.datastoreinspector.sample
 
 import android.app.Application
-import android.util.Log
 import com.yashraj.datastoreinspector.inspector.DatastoreInspector
 
 class SampleApplication : Application() {
-    companion object {
-        private const val TAG = "SampleApplication"
-    }
 
     override fun onCreate() {
         super.onCreate()
@@ -17,6 +13,8 @@ class SampleApplication : Application() {
     fun readDataStores() {
         DatastoreInspector.start(this)
         DatastoreInspector.register("user_preferences", prefsDataStore)
-            .registerProto("user_prefs", protoDataStore)
+            // Use one of the two below:
+            .registerProto("user_prefs", protoDataStore, UserPreferencesProtoMapper()) // custom mapper — explicit fields, no reflection
+//          .registerProto("user_prefs", protoDataStore)                               // default mapper — uses reflection to discover fields
     }
 }

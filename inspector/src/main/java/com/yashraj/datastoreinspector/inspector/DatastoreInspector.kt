@@ -6,18 +6,17 @@ import android.widget.Toast
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.yashraj.datastoreinspector.inspector.proto.ProtoDataStoreHolder
+import com.yashraj.datastoreinspector.inspector.proto.ProtoInspectorMapper
 import com.yashraj.datastoreinspector.inspector.proto.ReflectiveProtoMapper
 import com.yashraj.datastoreinspector.inspector.server.InspectorServer
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import java.net.BindException
 
 object DatastoreInspector {
 
     private const val TAG = "DatastoreInspector"
 
-    internal val registeredDataStores = mutableMapOf<String, DataStore<Preferences>>()
-    internal val registeredProtoDataStores = mutableMapOf<String, ProtoDataStoreHolder<*>>()
+    private val registeredDataStores = mutableMapOf<String, DataStore<Preferences>>()
+    private val registeredProtoDataStores = mutableMapOf<String, ProtoDataStoreHolder<*>>()
     private var server: InspectorServer? = null
     private var isRunning = false
 
@@ -28,13 +27,13 @@ object DatastoreInspector {
         return this
     }
 
-    // Register a Proto DataStore instance for inspection.
+    // Register a Proto DataStore. Pass a custom mapper to override field read/write behavior; defaults to reflection.
     fun <T : Any> registerProto(
         name: String,
-        dataStore: DataStore<T>
+        dataStore: DataStore<T>,
+        mapper: ProtoInspectorMapper<T>? = null
     ): DatastoreInspector {
-        // Use a default reflective mapper
-        registeredProtoDataStores[name] = ProtoDataStoreHolder(dataStore, ReflectiveProtoMapper())
+        registeredProtoDataStores[name] = ProtoDataStoreHolder(dataStore, mapper ?: ReflectiveProtoMapper())
         Log.d(TAG, "Registered Proto DataStore: $name")
         return this
     }
@@ -50,7 +49,7 @@ object DatastoreInspector {
             server?.start()
             isRunning = true
             Toast.makeText(context.applicationContext, "Datastore Inspector started on port $port", Toast.LENGTH_SHORT).show()
-        } catch (e: java.net.BindException) {
+        } catch (e: BindException) {
             Toast.makeText(context.applicationContext, "Port $port is already in use", Toast.LENGTH_LONG).show()
             Log.e(TAG, "Port $port is already in use. Please choose a different port.")
             return
@@ -59,17 +58,15 @@ object DatastoreInspector {
         Log.d(TAG, "Server started on port $port")
     }
 
-//    fun stop() {
-//        server?.stop()
-//        scope.cancel()
-//        Log.d(TAG, "Server stopped")
-//    }
+    fun stop() {
+        server?.stop()
+        server = null
+        isRunning = false
+        Log.d(TAG, "Inspector stopped")
+    }
 
-     internal fun getDataStores() = registeredDataStores.toMap()
+    internal fun getDataStores(): Map<String, DataStore<Preferences>> = registeredDataStores
 
-     internal fun getProtoDataStores() = registeredProtoDataStores.toMap()
-
-    internal val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
+    internal fun getProtoDataStores(): Map<String, ProtoDataStoreHolder<*>> = registeredProtoDataStores
 
 }

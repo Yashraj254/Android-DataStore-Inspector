@@ -2,29 +2,35 @@ package com.yashraj.datastoreinspector.inspector.proto
 
 import java.lang.reflect.Modifier
 
-class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
+internal class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
+
+    // Caches filtered methods per class so reflection runs only once per proto type.
+    private val methodCache = mutableMapOf<Class<*>, List<java.lang.reflect.Method>>()
+
+    private fun getFieldMethods(clazz: Class<*>) = methodCache.getOrPut(clazz) {
+        clazz.methods.filter { method ->
+            val name = method.name
+            val returnType = method.returnType
+            name.startsWith("get")
+                    && method.parameterCount == 0
+                    && !Modifier.isStatic(method.modifiers)
+                    && !name.endsWith("Bytes")
+                    && !name.endsWith("Count")
+                    && !name.endsWith("List")
+                    && name != "getClass"
+                    && name != "getDefaultInstanceForType"
+                    && name != "getSerializedSize"
+                    && name != "getAllFields"
+                    && name != "getUnknownFields"
+                    && !returnType.name.contains("Builder")
+                    && !returnType.name.contains("ByteString")
+                    && !returnType.name.contains("Descriptor")
+                    && !returnType.name.contains("Parser")
+        }
+    }
 
     override fun toEntries(proto: T): List<ProtoEntry> {
-        return proto.javaClass.methods
-            .filter { method ->
-                val name = method.name
-                val returnType = method.returnType
-                name.startsWith("get")
-                        && method.parameterCount == 0
-                        && !Modifier.isStatic(method.modifiers)
-                        && !name.endsWith("Bytes")
-                        && !name.endsWith("Count")
-                        && !name.endsWith("List")
-                        && name != "getClass"
-                        && name != "getDefaultInstanceForType"
-                        && name != "getSerializedSize"
-                        && name != "getAllFields"
-                        && name != "getUnknownFields"
-                        && !returnType.name.contains("Builder")
-                        && !returnType.name.contains("ByteString")
-                        && !returnType.name.contains("Descriptor")
-                        && !returnType.name.contains("Parser")
-            }
+        return getFieldMethods(proto.javaClass)
             .mapNotNull { method ->
                 val value = runCatching { method.invoke(proto) }.getOrNull() ?: return@mapNotNull null
                 val fieldName = method.name.removePrefix("get").let { camelToSnake(it) }
@@ -44,7 +50,7 @@ class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
             paramType == Long::class.java -> value.toLong()
             paramType == Float::class.java -> value.toFloat()
             paramType == Double::class.java -> value.toDouble()
-            paramType.isEnum -> paramType.enumConstants.first { (it as Enum<*>).name == value }
+            paramType.isEnum -> paramType.enumConstants?.first { (it as Enum<*>).name == value } ?: return proto
             else -> return proto
         }
         setter.invoke(builder, typedValue)

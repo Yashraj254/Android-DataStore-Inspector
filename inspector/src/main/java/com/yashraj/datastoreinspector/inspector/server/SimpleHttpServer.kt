@@ -1,6 +1,7 @@
 package com.yashraj.datastoreinspector.inspector.server
 
 import android.util.Log
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.ServerSocket
@@ -10,7 +11,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 
-abstract class SimpleHttpServer(private val port: Int) {
+internal abstract class SimpleHttpServer(private val port: Int) {
 
     enum class Status(val code: Int, val description: String) {
         OK(200, "OK"),
@@ -75,6 +76,7 @@ abstract class SimpleHttpServer(private val port: Int) {
 
 
     private fun handleClient(socket: Socket) {
+        socket.soTimeout = 30_000
         socket.use {
             try {
                 val input = socket.getInputStream()
@@ -112,18 +114,17 @@ abstract class SimpleHttpServer(private val port: Int) {
 
 
     // Reads one line from input, stripping the trailing \r\n.
-    // Reads byte-by-byte intentionally — BufferedReader would over-consume into the body.
     private fun readHttpLine(input: InputStream): String? {
-        val bytes = mutableListOf<Byte>()
+        val baos = ByteArrayOutputStream()
         var prev = -1
         while (true) {
             val b = input.read()
-            if (b == -1) return if (bytes.isEmpty()) null else String(bytes.toByteArray(), Charsets.UTF_8)
+            if (b == -1) return if (baos.size() == 0) null else baos.toString(Charsets.UTF_8.name())
             if (b == '\n'.code && prev == '\r'.code) {
-                if (bytes.isNotEmpty()) bytes.removeAt(bytes.lastIndex) // drop the \r; removeLast() requires API 35+
-                return String(bytes.toByteArray(), Charsets.UTF_8)
+                val bytes = baos.toByteArray()
+                return String(bytes, 0, maxOf(0, bytes.size - 1), Charsets.UTF_8) // drop the \r
             }
-            bytes.add(b.toByte())
+            baos.write(b)
             prev = b
         }
     }

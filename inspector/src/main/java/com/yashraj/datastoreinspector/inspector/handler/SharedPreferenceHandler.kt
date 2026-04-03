@@ -7,10 +7,11 @@ import androidx.core.content.edit
 import com.google.gson.Gson
 import com.yashraj.datastoreinspector.inspector.model.PreferenceEntry
 
-class SharedPreferenceHandler(private val context: Context) {
+internal class SharedPreferenceHandler(private val context: Context) {
 
     companion object {
         private const val TAG = "SharedPreferenceHandler"
+        private val gson = Gson()
     }
 
     // Get list of all SharedPreferences file names (without .xml extension) in the app's shared_prefs directory
@@ -46,7 +47,7 @@ class SharedPreferenceHandler(private val context: Context) {
                 "Float" -> putFloat(key, value.toFloat())
                 "Boolean" -> putBoolean(key, value.toBoolean())
                 "StringSet" -> {
-                    val set = Gson().fromJson(value, Array<String>::class.java).toSet()
+                    val set = gson.fromJson(value, Array<String>::class.java).toSet()
                     putStringSet(key, set)
                 }
             }
@@ -62,18 +63,6 @@ class SharedPreferenceHandler(private val context: Context) {
     fun clear(name: String) {
         context.getSharedPreferences(name, Context.MODE_PRIVATE).edit { clear() }
         Log.d(TAG, "Cleared SharedPrefs: $name")
-    }
-    private fun getType(value: Any?): String {
-        return when (value) {
-            is String -> "String"
-            is Int -> "Int"
-            is Long -> "Long"
-            is Float -> "Float"
-            is Boolean -> "Boolean"
-            is Set<*> -> "StringSet"
-            null -> "Null"
-            else -> "Unknown"
-        }
     }
 }
 

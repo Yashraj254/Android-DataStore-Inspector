@@ -10,28 +10,24 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.yashraj.datastoreinspector.inspector.DatastoreInspector
 import com.yashraj.datastoreinspector.inspector.model.DataStoreEntry
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-class PreferencesDataStoreHandler(private val dataStores: Map<String, DataStore<Preferences>>) {
+internal class PreferencesDataStoreHandler(private val dataStores: Map<String, DataStore<Preferences>>) {
 
     companion object {
         private const val TAG = "PreferencesDataStore"
     }
-    private val registeredStores: MutableMap<String, DataStore<Preferences>>
-        get() = DatastoreInspector.registeredDataStores
 
 
-    fun listDataStores(): List<String> = registeredStores.keys.toList()
+    fun listDataStores(): List<String> = dataStores.keys.toList()
 
 
     // Read all preferences from a registered DataStore.
     fun getAll(name: String): List<DataStoreEntry> {
-        val dataStore = registeredStores[name] ?: return emptyList()
-        val prefs = runBlocking(DatastoreInspector.scope.coroutineContext) { dataStore.data.first() }
+        val dataStore = dataStores[name] ?: return emptyList()
+        val prefs = runBlocking { dataStore.data.first() }
 
         return prefs.asMap().map { (key, value) ->
             DataStoreEntry(
@@ -44,8 +40,8 @@ class PreferencesDataStoreHandler(private val dataStores: Map<String, DataStore<
 
     // Update a value in a registered DataStore with proper type handling
     fun update(name: String, key: String, value: String, type: String) {
-        val dataStore = registeredStores[name] ?: return
-        DatastoreInspector.scope.launch {
+        val dataStore = dataStores[name] ?: return
+        runBlocking {
             dataStore.edit { prefs ->
                 when (type) {
                     "String" -> prefs[stringPreferencesKey(key)] = value
@@ -62,8 +58,8 @@ class PreferencesDataStoreHandler(private val dataStores: Map<String, DataStore<
 
     // Delete a key from a registered DataStore with proper type handling
     fun delete(name: String, key: String, type: String) {
-        val dataStore = registeredStores[name] ?: return
-        DatastoreInspector.scope.launch {
+        val dataStore = dataStores[name] ?: return
+        runBlocking {
             dataStore.edit { prefs ->
                 val typedKey = when (type) {
                     "String" -> stringPreferencesKey(key)
@@ -81,24 +77,11 @@ class PreferencesDataStoreHandler(private val dataStores: Map<String, DataStore<
     }
 
     fun clear(name: String) {
-        val dataStore = registeredStores[name] ?: return
-        DatastoreInspector.scope.launch { dataStore.edit { it.clear() } }
+        val dataStore = dataStores[name] ?: return
+        runBlocking { dataStore.edit { it.clear() } }
         Log.d(TAG, "Cleared DataStore: $name")
     }
 
-    private fun getType(value: Any?): String {
-        return when (value) {
-            is String -> "String"
-            is Int -> "Int"
-            is Long -> "Long"
-            is Float -> "Float"
-            is Double -> "Double"
-            is Boolean -> "Boolean"
-            is Set<*> -> "StringSet"
-            null -> "Null"
-            else -> "Unknown"
-        }
-    }
 }
 
 

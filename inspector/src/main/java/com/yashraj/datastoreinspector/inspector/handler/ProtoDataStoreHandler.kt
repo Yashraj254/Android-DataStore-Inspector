@@ -1,14 +1,12 @@
 package com.yashraj.datastoreinspector.inspector.handler
 
 import android.util.Log
-import com.yashraj.datastoreinspector.inspector.DatastoreInspector
 import com.yashraj.datastoreinspector.inspector.proto.ProtoDataStoreHolder
 import com.yashraj.datastoreinspector.inspector.proto.ProtoEntry
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 
-class ProtoDataStoreHandler(private val protoDataStores: Map<String, ProtoDataStoreHolder<*>>) {
+internal class ProtoDataStoreHandler(private val protoDataStores: Map<String, ProtoDataStoreHolder<*>>) {
 
     companion object {
         private const val TAG = "ProtoDataStoreHandler"
@@ -28,7 +26,7 @@ class ProtoDataStoreHandler(private val protoDataStores: Map<String, ProtoDataSt
     @Suppress("UNCHECKED_CAST")
     fun update(name: String, key: String, value: String) {
         val holder = protoDataStores[name] as? ProtoDataStoreHolder<Any> ?: return
-        DatastoreInspector.scope.launch {
+        runBlocking {
             holder.dataStore.updateData { old -> holder.mapper.updateField(old, key, value) }
         }
         Log.d(TAG, "Updated Proto DataStore: $name[$key] = $value")

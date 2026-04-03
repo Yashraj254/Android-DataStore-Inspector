@@ -9,21 +9,23 @@ import com.yashraj.datastoreinspector.inspector.handler.ProtoDataStoreHandler
 import com.yashraj.datastoreinspector.inspector.handler.SharedPreferenceHandler
 import kotlin.jvm.java
 
-class InspectorServer(private val context: Context, port: Int) : SimpleHttpServer(port) {
+internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(port) {
+
+    private val prefsHandler = SharedPreferenceHandler(context)
+    private val dataStoreHandler = PreferencesDataStoreHandler(DatastoreInspector.getDataStores())
+    private val protoHandler = ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores())
+    private val htmlBytes = context.assets.open("inspector.html").use { it.readBytes() }
 
     companion object {
         private const val TAG = "InspectorServer"
+        private val gson = Gson()
     }
 
     override fun serve(request: Request): Response {
         Log.d(TAG, "Request: ${request.method} ${request.uri}")
         val uri = request.uri
-        val prefsHandler = SharedPreferenceHandler(context)
         return when {
-            uri == "/" && request.method == "GET" -> {
-                val bytes = context.assets.open("inspector.html").readBytes()
-                Response(Status.OK, "text/html", bytes)
-            }
+            uri == "/" && request.method == "GET" -> Response(Status.OK, "text/html", htmlBytes)
 
             uri == "/api/sharedprefs" && request.method == "GET" -> json(prefsHandler.listAll())
             uri.startsWith("/api/sharedprefs/") && request.method == "GET" -> json(prefsHandler.getAllWithTypes(uri.removePrefix("/api/sharedprefs/")))
@@ -40,10 +42,10 @@ class InspectorServer(private val context: Context, port: Int) : SimpleHttpServe
             }
 
             uri == "/api/datastore" && request.method == "GET" ->
-                json(PreferencesDataStoreHandler(DatastoreInspector.getDataStores()).listDataStores())
+                json(dataStoreHandler.listDataStores())
 
             uri.startsWith("/api/datastore/") && request.method == "GET" ->
-                json(PreferencesDataStoreHandler(DatastoreInspector.getDataStores()).getAll(uri.removePrefix("/api/datastore/")))
+                json(dataStoreHandler.getAll(uri.removePrefix("/api/datastore/")))
 
             uri.startsWith("/api/datastore/") && request.method == "PUT" ->
                 handleDataStorePut(request, uri.removePrefix("/api/datastore/"))
@@ -52,15 +54,15 @@ class InspectorServer(private val context: Context, port: Int) : SimpleHttpServe
                 handleDataStoreDelete(request, uri.removePrefix("/api/datastore/"))
 
             uri.startsWith("/api/clear/datastore/") && request.method == "POST" -> {
-                PreferencesDataStoreHandler(DatastoreInspector.getDataStores()).clear(uri.removePrefix("/api/clear/datastore/"))
+                dataStoreHandler.clear(uri.removePrefix("/api/clear/datastore/"))
                 json(emptyMap<String, String>())
             }
 
             uri == "/api/proto" && request.method == "GET" ->
-                json(ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores()).listProtoStores())
+                json(protoHandler.listProtoStores())
 
             uri.startsWith("/api/proto/") && request.method == "GET" ->
-                json(ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores()).getAll(uri.removePrefix("/api/proto/")))
+                json(protoHandler.getAll(uri.removePrefix("/api/proto/")))
 
             uri.startsWith("/api/proto/") && request.method == "PUT" ->
                 handleProtoPut(request, uri.removePrefix("/api/proto/"))
@@ -71,7 +73,7 @@ class InspectorServer(private val context: Context, port: Int) : SimpleHttpServe
 
     private fun handleSharedPrefsPut(request: Request, name: String, handler: SharedPreferenceHandler): Response {
         val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = Gson().fromJson(body, PutRequest::class.java)
+        val req = gson.fromJson(body, PutRequest::class.java)
         validateValue(req.value, req.type)?.let { return error400("Type mismatch for '${req.key}': $it") }
         handler.update(name, req.key, req.value, req.type)
         return json(emptyMap<String, String>())
@@ -79,36 +81,30 @@ class InspectorServer(private val context: Context, port: Int) : SimpleHttpServe
 
     private fun handleSharedPrefsDelete(request: Request, name: String, handler: SharedPreferenceHandler): Response {
         val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = Gson().fromJson(body, DeleteRequest::class.java)
+        val req = gson.fromJson(body, DeleteRequest::class.java)
         handler.delete(name, req.key)
         return json(emptyMap<String, String>())
     }
 
     private fun handleDataStorePut(request: Request, name: String): Response {
         val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = Gson().fromJson(body, PutRequest::class.java)
+        val req = gson.fromJson(body, PutRequest::class.java)
         validateValue(req.value, req.type)?.let { return error400("Type mismatch for '${req.key}': $it") }
-        PreferencesDataStoreHandler(DatastoreInspector.getDataStores()).update(name, req.key, req.value, req.type)
+        dataStoreHandler.update(name, req.key, req.value, req.type)
         return json(emptyMap<String, String>())
     }
 
     private fun handleDataStoreDelete(request: Request, name: String): Response {
         val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = Gson().fromJson(body, TypedDeleteRequest::class.java)
-        PreferencesDataStoreHandler(DatastoreInspector.getDataStores()).delete(name, req.key, req.type)
+        val req = gson.fromJson(body, TypedDeleteRequest::class.java)
+        dataStoreHandler.delete(name, req.key, req.type)
         return json(emptyMap<String, String>())
     }
 
     private fun handleProtoPut(request: Request, name: String): Response {
         val body = readBody(request) ?: return error400("Missing request body")
-        val req = Gson().fromJson(body, ProtoUpdateRequest::class.java)
-        val handler = ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores())
-        // Look up the declared field type so we can validate before writing
-        val fieldType = handler.getAll(name).firstOrNull { it.key == req.key }?.type
-        if (fieldType != null) {
-            validateValue(req.value, fieldType)?.let { return error400("Type mismatch for '${req.key}': $it") }
-        }
-        handler.update(name, req.key, req.value)
+        val req = gson.fromJson(body, ProtoUpdateRequest::class.java)
+        protoHandler.update(name, req.key, req.value)
         return json(emptyMap<String, String>())
     }
 
@@ -130,7 +126,7 @@ class InspectorServer(private val context: Context, port: Int) : SimpleHttpServe
 
     private fun error400(message: String): Response =
         respond(Status.BAD_REQUEST, "application/json",
-            Gson().toJson(mapOf("error" to message)))
+            gson.toJson(mapOf("error" to message)))
 
     private fun readBody(request: Request): String? {
         val len = request.headers["content-length"]?.toIntOrNull() ?: return null
@@ -146,7 +142,7 @@ class InspectorServer(private val context: Context, port: Int) : SimpleHttpServe
     }
 
     private fun json(data: Any): Response =
-        respond(Status.OK, "application/json", Gson().toJson(data))
+        respond(Status.OK, "application/json", gson.toJson(data))
 
     private data class PutRequest(val key: String, val value: String, val type: String)
 
