@@ -9,8 +9,14 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.dataStore
 import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.doublePreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.lifecycleScope
 import com.yashraj.datastoreinspector.sample.databinding.ActivityMainBinding
@@ -92,7 +98,11 @@ class MainActivity : AppCompatActivity() {
         sharedPreferences.edit()
             .putString("username", "JohnDoe_SharedPrefs")
             .putString("email", "john.shared@example.com")
-            .putString("number", "1234567890")
+            .putInt("age", 28)
+            .putBoolean("is_logged_in", true)
+            .putFloat("rating", 4.5f)
+            .putLong("last_login", System.currentTimeMillis())
+            .putStringSet("interests", setOf("coding", "music", "travel"))
             .apply()
     }
 
@@ -108,7 +118,12 @@ class MainActivity : AppCompatActivity() {
             prefsDataStore.edit { prefs ->
                 prefs[stringPreferencesKey("username")] = "JohnDoe_PrefsDS"
                 prefs[stringPreferencesKey("email")] = "john.prefs@example.com"
-                prefs[stringPreferencesKey("number")] = "0987654321"
+                prefs[intPreferencesKey("age")] = 28
+                prefs[booleanPreferencesKey("is_premium")] = false
+                prefs[floatPreferencesKey("rating")] = 4.5f
+                prefs[longPreferencesKey("last_sync")] = System.currentTimeMillis()
+                prefs[doublePreferencesKey("account_balance")] = 99.99
+                prefs[stringSetPreferencesKey("tags")] = setOf("kotlin", "android", "datastore")
             }
         }
     }
@@ -130,6 +145,11 @@ class MainActivity : AppCompatActivity() {
                     username = "JohnDoe_ProtoDS"
                     email = "john.proto@example.com"
                     number = "9999999999"
+                    age = 28
+                    isPremium = true
+                    rating = 4.5f
+                    lastLogin = System.currentTimeMillis()
+                    accountBalance = 199.99
                 }
             }
         }
@@ -138,8 +158,16 @@ class MainActivity : AppCompatActivity() {
     private fun observeProtoDataStore() {
         lifecycleScope.launch {
             protoDataStore.data.collectLatest { userPrefs ->
-                binding.tvProtoDataStore.text =
-                    "Username: ${userPrefs.username}\nEmail: ${userPrefs.email}\nNumber: ${userPrefs.number}"
+                binding.tvProtoDataStore.text = """
+                    Username: ${userPrefs.username}
+                    Email: ${userPrefs.email}
+                    Number: ${userPrefs.number}
+                    Age: ${userPrefs.age}
+                    Premium: ${userPrefs.isPremium}
+                    Rating: ${userPrefs.rating}
+                    Last Login: ${userPrefs.lastLogin}
+                    Balance: ${userPrefs.accountBalance}
+                """.trimIndent()
             }
         }
     }
