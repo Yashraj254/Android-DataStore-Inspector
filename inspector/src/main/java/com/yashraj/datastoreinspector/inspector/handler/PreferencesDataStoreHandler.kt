@@ -10,7 +10,7 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.yashraj.datastoreinspector.inspector.model.DataStoreEntry
+import com.yashraj.datastoreinspector.inspector.model.PreferenceEntry
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
@@ -25,12 +25,12 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
 
 
     // Read all preferences from a registered DataStore.
-    fun getAll(name: String): List<DataStoreEntry> {
+    fun getAll(name: String): List<PreferenceEntry> {
         val dataStore = dataStores[name] ?: return emptyList()
         val prefs = runBlocking { dataStore.data.first() }
 
         return prefs.asMap().map { (key, value) ->
-            DataStoreEntry(
+            PreferenceEntry(
                 key = key.name,
                 value = value,
                 type = getType(value)

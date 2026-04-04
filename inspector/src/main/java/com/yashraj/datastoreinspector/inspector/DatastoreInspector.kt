@@ -21,7 +21,7 @@ object DatastoreInspector {
     private var isRunning = false
 
     // Register a DataStore instance for inspection
-    fun register(name: String, dataStore: DataStore<Preferences>): DatastoreInspector {
+    fun registerDataStore(name: String, dataStore: DataStore<Preferences>): DatastoreInspector {
         registeredDataStores[name] = dataStore
         Log.d(TAG, "Registered DataStore: $name")
         return this
@@ -38,7 +38,7 @@ object DatastoreInspector {
         return this
     }
 
-    // Start the inspector. Called automatically via ContentProvider.
+    // Start the inspector. Auto-started via ContentProvider; call manually only to use a custom port.
     fun start(context: Context, port: Int = 3000) {
         if (isRunning) {
             Log.w(TAG, "Inspector already started")
