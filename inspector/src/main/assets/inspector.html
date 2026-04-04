@@ -123,7 +123,7 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         .section-gap { margin-top: 16px; }
 
-        // Error dialog
+        /* Error dialog */
         .modal-overlay {
           position: fixed; top: 0; right: 0; bottom: 0; left: 0; background: rgba(0,0,0,.45);
           display: flex; align-items: center; justify-content: center; z-index: 1000;
@@ -148,7 +148,13 @@
           background: var(--surface2); border: 1px solid var(--border);
           border-radius: 6px; padding: 10px 12px; margin-bottom: 20px;
         }
-        .modal-actions { display: flex; justify-content: flex-end; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        .edit-modal-input {
+          width: 100%; padding: 8px 10px; border: 1px solid var(--input-border);
+          border-radius: 6px; background: var(--input-bg); color: var(--text);
+          font-size: 14px; margin-bottom: 20px;
+        }
+        .edit-modal-input:focus { outline: none; border-color: var(--accent); }
     </style>
 </head>
 <body>
@@ -301,6 +307,36 @@
       return r.json();
     }
 
+    function showEditDialog(key, type, currentVal, onSave) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal" role="dialog" aria-modal="true">
+          <div class="modal-meta">Editing field</div>
+          <div class="modal-title" style="color:var(--text)">${esc(key)} ${badge(type)}</div>
+          <input class="edit-modal-input" type="text" value="${esc(currentVal)}" />
+          <div class="modal-actions">
+            <button class="btn btn-ghost" id="edit-modal-cancel">Cancel</button>
+            <button class="btn btn-primary" id="edit-modal-save">Save</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      const input = overlay.querySelector('.edit-modal-input');
+      input.focus();
+      input.select();
+      const close = () => overlay.remove();
+      overlay.querySelector('#edit-modal-cancel').addEventListener('click', close);
+      overlay.querySelector('#edit-modal-save').addEventListener('click', () => {
+        close();
+        onSave(input.value);
+      });
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+      overlay.addEventListener('keydown', e => {
+        if (e.key === 'Escape') close();
+        if (e.key === 'Enter') { close(); onSave(input.value); }
+      });
+    }
+
     function showErrorDialog(key, type, enteredValue, reason) {
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
@@ -391,17 +427,11 @@
       const key = tr.dataset.key;
       const type = tr.dataset.type;
       const currentVal = tr.querySelector('.val-cell').textContent;
-      tr.querySelector('.val-cell').innerHTML =
-        `<div class="inline-edit"><input type="text" class="sp-edit-input" value="${esc(currentVal)}" /></div>`;
-      tr.querySelector('.actions').innerHTML =
-        `<button class="btn btn-primary sp-save-btn">Save</button><button class="btn btn-ghost sp-cancel-btn">✕</button>`;
-      tr.querySelector('.sp-save-btn').addEventListener('click', () => {
-        const val = tr.querySelector('.sp-edit-input').value;
+      showEditDialog(key, type, currentVal, val =>
         api('/api/sharedprefs/' + name, 'PUT', { key, value: val, type })
           .then(() => { toast('Saved'); loadSpKeys(name); })
-          .catch(err => showErrorDialog(key, type, val, err.message));
-      });
-      tr.querySelector('.sp-cancel-btn').addEventListener('click', () => loadSpKeys(name));
+          .catch(err => showErrorDialog(key, type, val, err.message))
+      );
     }
 
     document.getElementById('sp-refresh-btn').addEventListener('click', () => spSelected && loadSpKeys(spSelected));
@@ -480,17 +510,11 @@
       const key = tr.dataset.key;
       const type = tr.dataset.type;
       const currentVal = tr.querySelector('.val-cell').textContent;
-      tr.querySelector('.val-cell').innerHTML =
-        `<div class="inline-edit"><input type="text" class="ds-edit-input" value="${esc(currentVal)}" /></div>`;
-      tr.querySelector('.actions').innerHTML =
-        `<button class="btn btn-primary ds-save-btn">Save</button><button class="btn btn-ghost ds-cancel-btn">✕</button>`;
-      tr.querySelector('.ds-save-btn').addEventListener('click', () => {
-        const val = tr.querySelector('.ds-edit-input').value;
+      showEditDialog(key, type, currentVal, val =>
         api('/api/datastore/' + name, 'PUT', { key, value: val, type })
           .then(() => { toast('Saved'); loadDsKeys(name); })
-          .catch(err => showErrorDialog(key, type, val, err.message));
-      });
-      tr.querySelector('.ds-cancel-btn').addEventListener('click', () => loadDsKeys(name));
+          .catch(err => showErrorDialog(key, type, val, err.message))
+      );
     }
 
     document.getElementById('ds-refresh-btn').addEventListener('click', () => dsSelected && loadDsKeys(dsSelected));
@@ -559,17 +583,11 @@
       const key = tr.dataset.key;
       const type = tr.dataset.type;
       const currentVal = tr.querySelector('.val-cell').textContent;
-      tr.querySelector('.val-cell').innerHTML =
-        `<div class="inline-edit"><input type="text" class="proto-edit-input" value="${esc(currentVal)}" /></div>`;
-      tr.querySelector('.actions').innerHTML =
-        `<button class="btn btn-primary proto-save-btn">Save</button><button class="btn btn-ghost proto-cancel-btn">✕</button>`;
-      tr.querySelector('.proto-save-btn').addEventListener('click', () => {
-        const val = tr.querySelector('.proto-edit-input').value;
+      showEditDialog(key, type, currentVal, val =>
         api('/api/proto/' + name, 'PUT', { key, value: val })
           .then(() => { toast('Saved'); loadProtoFields(name); })
-          .catch(err => showErrorDialog(key, type, val, err.message));
-      });
-      tr.querySelector('.proto-cancel-btn').addEventListener('click', () => loadProtoFields(name));
+          .catch(err => showErrorDialog(key, type, val, err.message))
+      );
     }
 
     document.getElementById('proto-refresh-btn').addEventListener('click', () => protoSelected && loadProtoFields(protoSelected));

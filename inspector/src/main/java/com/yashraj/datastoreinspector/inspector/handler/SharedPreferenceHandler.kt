@@ -11,7 +11,7 @@ internal class SharedPreferenceHandler(private val context: Context) {
 
     companion object {
         private const val TAG = "SharedPreferenceHandler"
-        private val gson = Gson()
+        val gson = Gson()
     }
 
     // Get list of all SharedPreferences file names (without .xml extension) in the app's shared_prefs directory
@@ -32,7 +32,7 @@ internal class SharedPreferenceHandler(private val context: Context) {
         return prefs.all.map { (key, value) ->
             PreferenceEntry(
                 key = key,
-                value = value,
+                value = if (value is Set<*>) gson.toJson(value) else value,
                 type = getType(value)
             )
         }.sortedBy { it.key }

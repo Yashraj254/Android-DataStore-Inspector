@@ -10,6 +10,8 @@ import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
+import com.google.gson.Gson
 import com.yashraj.datastoreinspector.inspector.model.PreferenceEntry
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -18,6 +20,7 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
 
     companion object {
         private const val TAG = "PreferencesDataStore"
+        private val gson = Gson()
     }
 
 
@@ -32,7 +35,7 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
         return prefs.asMap().map { (key, value) ->
             PreferenceEntry(
                 key = key.name,
-                value = value,
+                value = if (value is Set<*>) gson.toJson(value) else value,
                 type = getType(value)
             )
         }.sortedBy { it.key }
@@ -50,6 +53,7 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
                     "Float" -> prefs[floatPreferencesKey(key)] = value.toFloat()
                     "Double" -> prefs[doublePreferencesKey(key)] = value.toDouble()
                     "Boolean" -> prefs[booleanPreferencesKey(key)] = value.toBoolean()
+                    "StringSet" -> prefs[stringSetPreferencesKey(key)] = gson.fromJson(value, Array<String>::class.java).toSet()
                 }
             }
         }
@@ -68,6 +72,7 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
                     "Float" -> floatPreferencesKey(key)
                     "Double" -> doublePreferencesKey(key)
                     "Boolean" -> booleanPreferencesKey(key)
+                    "StringSet" -> stringSetPreferencesKey(key)
                     else -> stringPreferencesKey(key)
                 }
                 prefs.remove(typedKey)
