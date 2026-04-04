@@ -23,6 +23,7 @@
           --badge-enum: #2e7d32;
           --input-bg: #fff;
           --input-border: #bbb;
+          --on-accent: #fff;
         }
         [data-theme="dark"] {
           --bg: #121212;
@@ -42,6 +43,7 @@
           --badge-enum: #a5d6a7;
           --input-bg: #2a2a2a;
           --input-border: #444;
+          --on-accent: #121212;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
@@ -83,8 +85,8 @@
         tr:last-child td { border-bottom: none; }
         tr:hover td { background: var(--surface2); }
         .badge {
-          display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 7px;
-          border-radius: 10px; color: #fff; white-space: nowrap;
+          display: inline-block; font-size: 12px; font-weight: 600; padding: 4px 12px;
+          border-radius: 10px; color: var(--on-accent); white-space: nowrap;
         }
         .badge-String { background: var(--badge-string); }
         .badge-Int, .badge-Long, .badge-Float, .badge-Double { background: var(--badge-number); }
@@ -95,9 +97,9 @@
           cursor: pointer; border: none; border-radius: 5px; padding: 5px 10px;
           font-size: 12px; font-weight: 500; transition: background .15s;
         }
-        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary { background: var(--accent); color: var(--on-accent); }
         .btn-primary:hover { background: var(--accent-hover); }
-        .btn-danger { background: var(--danger); color: #fff; }
+        .btn-danger { background: var(--danger); color: var(--on-accent); }
         .btn-danger:hover { background: var(--danger-hover); }
         .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
         .btn-ghost:hover { background: var(--border); }
@@ -175,6 +177,7 @@
                 <div class="toolbar">
                     <button class="btn btn-ghost" id="sp-refresh-btn">↻ Refresh</button>
                     <button class="btn btn-danger" id="sp-clear-btn">Clear All</button>
+                    <input type="text" id="sp-search" placeholder="Search keys…" style="margin-left:auto;" />
                 </div>
 
                 <table>
@@ -203,6 +206,7 @@
                 <div class="toolbar">
                     <button class="btn btn-ghost" id="ds-refresh-btn">↻ Refresh</button>
                     <button class="btn btn-danger" id="ds-clear-btn">Clear All</button>
+                    <input type="text" id="ds-search" placeholder="Search keys…" style="margin-left:auto;" />
                 </div>
                 <table>
                     <thead><tr><th>Key</th><th>Value</th><th>Type</th><th></th></tr></thead>
@@ -229,6 +233,7 @@
                 <div class="panel-header" id="proto-kv-title">Fields</div>
                 <div class="toolbar">
                     <button class="btn btn-ghost" id="proto-refresh-btn">↻ Refresh</button>
+                    <input type="text" id="proto-search" placeholder="Search fields…" style="margin-left:auto;" />
                 </div>
                 <table>
                     <thead><tr><th>Field</th><th>Value</th><th>Type</th><th></th></tr></thead>
@@ -344,6 +349,7 @@
     }
 
     function loadSpKeys(name) {
+      document.getElementById('sp-search').value = '';
       document.getElementById('sp-select-hint').style.display = 'none';
       document.getElementById('sp-kv-panel').style.display = 'block';
       document.getElementById('sp-kv-title').textContent = name;
@@ -432,6 +438,7 @@
     }
 
     function loadDsKeys(name) {
+      document.getElementById('ds-search').value = '';
       document.getElementById('ds-select-hint').style.display = 'none';
       document.getElementById('ds-kv-panel').style.display = 'block';
       document.getElementById('ds-kv-title').textContent = name;
@@ -519,6 +526,7 @@
     }
 
     function loadProtoFields(name) {
+      document.getElementById('proto-search').value = '';
       document.getElementById('proto-select-hint').style.display = 'none';
       document.getElementById('proto-kv-panel').style.display = 'block';
       document.getElementById('proto-kv-title').textContent = name;
@@ -567,6 +575,31 @@
     document.getElementById('proto-refresh-btn').addEventListener('click', () => protoSelected && loadProtoFields(protoSelected));
 
     loadProtoFiles();
+
+    // Search
+    function filterTable(tbodyId, emptyId, query) {
+      const q = query.trim().toLowerCase();
+      const tbody = document.getElementById(tbodyId);
+      const empty = document.getElementById(emptyId);
+      let visible = 0;
+      tbody.querySelectorAll('tr').forEach(tr => {
+        const key = (tr.dataset.key || '').toLowerCase();
+        const show = !q || key.includes(q);
+        tr.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      empty.style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    document.getElementById('sp-search').addEventListener('input', e => {
+      filterTable('sp-kv-body', 'sp-kv-empty', e.target.value);
+    });
+    document.getElementById('ds-search').addEventListener('input', e => {
+      filterTable('ds-kv-body', 'ds-kv-empty', e.target.value);
+    });
+    document.getElementById('proto-search').addEventListener('input', e => {
+      filterTable('proto-kv-body', 'proto-kv-empty', e.target.value);
+    });
 
     // XSS-safe escape
     function esc(s) {
