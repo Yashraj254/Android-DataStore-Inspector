@@ -13,11 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.yashraj.datastoreinspector.inspector.proto
+package com.yashraj.datastoreinspector.inspector.utils
 
-import androidx.datastore.core.DataStore
-
-internal data class ProtoDataStoreHolder<T>(
-    val dataStore: DataStore<T>,
-    val mapper: ProtoInspectorMapper<T>
-)
+internal fun getType(value: Any?): String = when (value) {
+    is String -> "String"
+    is Int -> "Int"
+    is Long -> "Long"
+    is Float -> "Float"
+    is Double -> "Double"
+    is Boolean -> "Boolean"
+    is Set<*> -> "StringSet"
+    null -> "Null"
+    else -> "Unknown"
+}

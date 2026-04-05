@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.yashraj.datastoreinspector.inspector.proto
+package com.yashraj.datastoreinspector.inspector.model
 
-import androidx.datastore.core.DataStore
-
-internal data class ProtoDataStoreHolder<T>(
-    val dataStore: DataStore<T>,
-    val mapper: ProtoInspectorMapper<T>
+data class ProtoEntry(
+    val key: String,
+    val value: String,
+    val type: String,
 )
