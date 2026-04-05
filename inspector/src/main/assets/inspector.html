@@ -58,6 +58,19 @@
           color: var(--text); padding: 6px 12px; border-radius: 6px; font-size: 13px;
         }
         .theme-btn:hover { background: var(--border); }
+        .auto-refresh {
+          display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted);
+        }
+        .auto-refresh input[type="checkbox"] { cursor: pointer; }
+        .auto-refresh input[type="number"] {
+          width: 80px; padding: 4px 8px; border: 1px solid var(--input-border);
+          border-radius: 5px; background: var(--input-bg); color: var(--text); font-size: 13px;
+          -moz-appearance: textfield;
+        }
+        .auto-refresh input[type="number"]::-webkit-outer-spin-button,
+        .auto-refresh input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .auto-refresh input[type="number"]:disabled { opacity: 0.4; }
+        .auto-refresh input[type="number"]:focus { outline: none; border-color: var(--accent); }
         .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); background: var(--surface); padding: 0 20px; }
         .tab-btn {
           padding: 10px 20px; cursor: pointer; border: none; background: none;
@@ -161,6 +174,12 @@
 
 <header>
     <h1>DataStore Inspector</h1>
+    <div class="auto-refresh">
+        <input type="checkbox" id="autoRefreshToggle" />
+        <label for="autoRefreshToggle">Auto-refresh every</label>
+        <input type="number" id="autoRefreshInterval" value="3000" min="1000" placeholder="min 1000" disabled />
+        <span>ms</span>
+    </div>
     <button class="theme-btn" id="themeToggle">🌙 Dark</button>
 </header>
 
@@ -617,6 +636,37 @@
     });
     document.getElementById('proto-search').addEventListener('input', e => {
       filterTable('proto-kv-body', 'proto-kv-empty', e.target.value);
+    });
+
+    // Auto-refresh
+    let autoRefreshTimer = null;
+
+    function refreshCurrentTab() {
+      if (spSelected && document.getElementById('tab-sharedprefs').classList.contains('active')) loadSpKeys(spSelected);
+      else if (dsSelected && document.getElementById('tab-datastore').classList.contains('active')) loadDsKeys(dsSelected);
+      else if (protoSelected && document.getElementById('tab-proto').classList.contains('active')) loadProtoFields(protoSelected);
+    }
+
+    const autoRefreshToggle = document.getElementById('autoRefreshToggle');
+    const autoRefreshInterval = document.getElementById('autoRefreshInterval');
+
+    autoRefreshToggle.addEventListener('change', () => {
+      autoRefreshInterval.disabled = !autoRefreshToggle.checked;
+      if (autoRefreshToggle.checked) {
+        const ms = Math.max(1000, parseInt(autoRefreshInterval.value) || 3000);
+        autoRefreshTimer = setInterval(refreshCurrentTab, ms);
+      } else {
+        clearInterval(autoRefreshTimer);
+        autoRefreshTimer = null;
+      }
+    });
+
+    autoRefreshInterval.addEventListener('change', () => {
+      const ms = Math.max(1000, parseInt(autoRefreshInterval.value) || 3000);
+      autoRefreshInterval.value = ms;
+      if (!autoRefreshToggle.checked) return;
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = setInterval(refreshCurrentTab, ms);
     });
 
     // XSS-safe escape

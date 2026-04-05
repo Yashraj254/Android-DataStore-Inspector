@@ -16,6 +16,7 @@ It runs a lightweight HTTP server inside your app and serves a web UI you can op
 - Color-coded type badges (String, Int, Long, Float, Double, Boolean, StringSet)
 - Search keys by name in any tab
 - Clear all keys from a store in one click
+- Auto-refresh on a configurable interval (toggle in the UI)
 - Light and dark theme
 
 ---

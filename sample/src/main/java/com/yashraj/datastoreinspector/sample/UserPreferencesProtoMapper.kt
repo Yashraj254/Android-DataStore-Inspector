@@ -1,6 +1,6 @@
 package com.yashraj.datastoreinspector.sample
 
-import com.yashraj.datastoreinspector.inspector.proto.ProtoEntry
+import com.yashraj.datastoreinspector.inspector.model.ProtoEntry
 import com.yashraj.datastoreinspector.inspector.proto.ProtoInspectorMapper
 import com.yashraj.datastoreinspector.sample.proto.UserPreferences
 
