@@ -39,7 +39,7 @@ Use `debugImplementation` so the library is never included in release builds.
 
 ```kotlin
 dependencies {
-    debugImplementation("com.github.Yashraj254:DataStore-Inspector:latest-version")
+    debugImplementation("com.github.Yashraj254:Android-DataStore-Inspector:latest-version")
 }
 ```
 
