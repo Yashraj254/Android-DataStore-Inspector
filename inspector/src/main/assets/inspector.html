@@ -45,7 +45,20 @@
           --input-border: #444;
           --on-accent: #121212;
         }
+        :root {
+          --scrollbar-thumb: #bbb;
+          --scrollbar-track: #f0f0f0;
+        }
+        [data-theme="dark"] {
+          --scrollbar-thumb: #555;
+          --scrollbar-track: #1e1e1e;
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        * { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track); }
+        *::-webkit-scrollbar { width: 6px; height: 6px; }
+        *::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+        *::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+        *::-webkit-scrollbar-thumb:hover { background: var(--accent); }
         body { font-family: system-ui, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; }
         header {
           display: flex; align-items: center; justify-content: space-between;
@@ -83,8 +96,10 @@
         .tab-panel.active { display: block; }
         .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
         .panel-header { padding: 12px 16px; background: var(--surface2); border-bottom: 1px solid var(--border); font-weight: 600; }
-        .file-list { list-style: none; }
-        .file-list li { padding: 10px 16px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 8px; }
+        .file-list-scroll { overflow-x: auto; }
+        .file-list { list-style: none; width: max-content; min-width: 100%; }
+        .file-list li { padding: 10px 16px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .file-name { padding-right: 16px; }
         .file-list li:last-child { border-bottom: none; }
         .file-list li:hover { background: var(--surface2); }
         .file-list li.selected { background: var(--surface2); font-weight: 600; color: var(--accent); }
@@ -194,7 +209,7 @@
     <div class="layout">
         <div class="panel" id="sp-file-panel">
             <div class="panel-header">Files</div>
-            <ul class="file-list" id="sp-file-list"><li class="empty">Loading…</li></ul>
+            <div class="file-list-scroll"><ul class="file-list" id="sp-file-list"><li class="empty">Loading…</li></ul></div>
         </div>
         <div>
             <div class="panel" id="sp-kv-panel" style="display:none">
@@ -223,7 +238,7 @@
     <div class="layout">
         <div class="panel" id="ds-file-panel">
             <div class="panel-header">Stores</div>
-            <ul class="file-list" id="ds-file-list"><li class="empty">Loading…</li></ul>
+            <div class="file-list-scroll"><ul class="file-list" id="ds-file-list"><li class="empty">Loading…</li></ul></div>
         </div>
         <div>
             <div class="panel" id="ds-kv-panel" style="display:none">
@@ -251,7 +266,7 @@
     <div class="layout">
         <div class="panel" id="proto-file-panel">
             <div class="panel-header">Proto Stores</div>
-            <ul class="file-list" id="proto-file-list"><li class="empty">Loading…</li></ul>
+            <div class="file-list-scroll"><ul class="file-list" id="proto-file-list"><li class="empty">Loading…</li></ul></div>
         </div>
         <div>
             <div class="panel" id="proto-kv-panel" style="display:none">
@@ -389,7 +404,7 @@
         const ul = document.getElementById('sp-file-list');
         if (!files.length) { ul.innerHTML = '<li class="empty">No files found.</li>'; return; }
         ul.innerHTML = files.map(f =>
-          `<li data-name="${f}"><span class="chip"></span>${f}</li>`
+          `<li data-name="${f}"><span class="chip"></span><span class="file-name">${f}</span></li>`
         ).join('');
         ul.querySelectorAll('li').forEach(li => {
           li.addEventListener('click', () => {
@@ -472,7 +487,7 @@
         const ul = document.getElementById('ds-file-list');
         if (!names.length) { ul.innerHTML = '<li class="empty">No stores found.</li>'; return; }
         ul.innerHTML = names.map(n =>
-          `<li data-name="${n}"><span class="chip"></span>${n}</li>`
+          `<li data-name="${n}"><span class="chip"></span><span class="file-name">${n}</span></li>`
         ).join('');
         ul.querySelectorAll('li').forEach(li => {
           li.addEventListener('click', () => {
@@ -554,7 +569,7 @@
         const ul = document.getElementById('proto-file-list');
         if (!names.length) { ul.innerHTML = '<li class="empty">No proto stores found.</li>'; return; }
         ul.innerHTML = names.map(n =>
-          `<li data-name="${n}"><span class="chip"></span>${n}</li>`
+          `<li data-name="${n}"><span class="chip"></span><span class="file-name">${n}</span></li>`
         ).join('');
         ul.querySelectorAll('li').forEach(li => {
           li.addEventListener('click', () => {
