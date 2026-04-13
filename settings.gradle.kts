@@ -22,3 +22,4 @@ dependencyResolutionManagement {
 rootProject.name = "DataStore Inspector"
 include(":sample")
 include(":inspector")
+include(":no-op")
