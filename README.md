@@ -33,13 +33,14 @@ dependencyResolutionManagement {
 }
 ```
 
-### Step 2 — Add the dependency
+### Step 2 — Add the dependencies
 
-Use `debugImplementation` so the library is never included in release builds.
+Use `debugImplementation` for the full library and `releaseImplementation` for the no-op module. The no-op module provides empty stub implementations of the same API so release builds compile without any inspector code or overhead.
 
 ```kotlin
 dependencies {
-    debugImplementation("com.github.Yashraj254:Android-DataStore-Inspector:latest-version")
+    debugImplementation("com.github.Yashraj254.Android-DataStore-Inspector:inspector:latest-version")
+    releaseImplementation("com.github.Yashraj254.Android-DataStore-Inspector:no-op:latest-version")
 }
 ```
 
