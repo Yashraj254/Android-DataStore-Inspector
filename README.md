@@ -1,10 +1,22 @@
-# DataStore Inspector
+# Android DataStore Inspector – Debug DataStore from Browser
 
 ![Banner](screenshots/banner.jpg)
 
-A debugging library for Android that lets you inspect and edit **SharedPreferences**, **DataStore Preferences**, and **Proto DataStore** from a browser.
+Debugging SharedPreferences and Jetpack DataStore in Android is painful — especially when you need to inspect or modify values at runtime.
 
-It runs a lightweight HTTP server inside your app and serves a web UI you can open from any browser on the same network.
+Android DataStore Inspector is a lightweight debugging tool that lets you view, edit, and manage **SharedPreferences**, **DataStore Preferences**, and **Proto DataStore** directly from your browser.
+
+---
+
+## Why this exists
+
+Android Studio’s Database Inspector does not support:
+
+- DataStore Preferences
+- Proto DataStore
+- Runtime editing of values
+
+This tool fills that gap with a simple browser-based inspector that works in real time.
 
 ---
 
