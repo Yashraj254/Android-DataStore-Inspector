@@ -56,7 +56,7 @@ Register as many DataStore instances as you need by chaining calls:
 class SampleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        DatastoreInspector
+        DataStoreInspector
             .registerDataStore("user_preferences", userPreferencesDataStore)
             .registerDataStore("app_settings", appSettingsDataStore)
             .registerProto("user_prefs", userProtoDataStore)
@@ -96,7 +96,7 @@ http://<device-ip>:3000
 The default port is `3000`. To use a different port, call `start()` manually before any other registration:
 
 ```kotlin
-DatastoreInspector.start(this, port = 8080)
+DataStoreInspector.start(this, port = 8080)
 ```
 
 ---
@@ -141,7 +141,7 @@ class UserPreferencesProtoMapper : ProtoInspectorMapper<UserPreferences> {
 Pass it when registering:
 
 ```kotlin
-DatastoreInspector.registerProto("user_prefs", userProtoDataStore, UserPreferencesMapper())
+DataStoreInspector.registerProto("user_prefs", userProtoDataStore, UserPreferencesMapper())
 ```
 
 ---
