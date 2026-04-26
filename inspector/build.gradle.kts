@@ -33,6 +33,7 @@ android {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.startup.runtime)
     implementation(libs.datastore.preferences)
     implementation(libs.gson)
 }

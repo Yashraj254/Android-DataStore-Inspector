@@ -16,20 +16,13 @@
 package com.yashraj.datastoreinspector.inspector
 
 import android.content.Context
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import com.yashraj.datastoreinspector.inspector.proto.ProtoInspectorMapper
+import androidx.startup.Initializer
 
-@Suppress("UNUSED_PARAMETER")
-object DatastoreInspector {
+internal class DataStoreInspectorInitializer : Initializer<Unit> {
 
-    fun registerDataStore(name: String, dataStore: DataStore<Preferences>): DatastoreInspector = this
+    override fun create(context: Context) {
+        DataStoreInspector.start(context)
+    }
 
-    fun <T : Any> registerProto(name: String, dataStore: DataStore<T>,
-        mapper: ProtoInspectorMapper<T>? = null
-    ): DatastoreInspector = this
-
-    fun start(context: Context, port: Int = 3000) = Unit
-
-    fun stop() = Unit
+    override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
 }

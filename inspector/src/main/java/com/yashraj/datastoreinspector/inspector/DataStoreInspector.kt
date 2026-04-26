@@ -26,9 +26,9 @@ import com.yashraj.datastoreinspector.inspector.proto.ReflectiveProtoMapper
 import com.yashraj.datastoreinspector.inspector.server.InspectorServer
 import java.net.BindException
 
-object DatastoreInspector {
+object DataStoreInspector {
 
-    private const val TAG = "DatastoreInspector"
+    private const val TAG = "DataStoreInspector"
 
     private val registeredDataStores = mutableMapOf<String, DataStore<Preferences>>()
     private val registeredProtoDataStores = mutableMapOf<String, ProtoDataStoreHolder<*>>()
@@ -36,7 +36,7 @@ object DatastoreInspector {
     private var isRunning = false
 
     // Register a DataStore instance for inspection
-    fun registerDataStore(name: String, dataStore: DataStore<Preferences>): DatastoreInspector {
+    fun registerDataStore(name: String, dataStore: DataStore<Preferences>): DataStoreInspector {
         registeredDataStores[name] = dataStore
         Log.d(TAG, "Registered DataStore: $name")
         return this
@@ -47,13 +47,13 @@ object DatastoreInspector {
         name: String,
         dataStore: DataStore<T>,
         mapper: ProtoInspectorMapper<T>? = null
-    ): DatastoreInspector {
+    ): DataStoreInspector {
         registeredProtoDataStores[name] = ProtoDataStoreHolder(dataStore, mapper ?: ReflectiveProtoMapper())
         Log.d(TAG, "Registered Proto DataStore: $name")
         return this
     }
 
-    // Start the inspector, Auto-started via ContentProvider, call manually only to use a custom port.
+    // Start the inspector, Auto-started via App Startup Initializer, call manually only to use a custom port.
     fun start(context: Context, port: Int = 3000) {
         if (isRunning) {
             Log.w(TAG, "Inspector already started")
@@ -63,7 +63,7 @@ object DatastoreInspector {
             server = InspectorServer(context.applicationContext, port)
             server?.start()
             isRunning = true
-            Toast.makeText(context.applicationContext, "Datastore Inspector started on port $port", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context.applicationContext, "DataStore Inspector started on port $port", Toast.LENGTH_SHORT).show()
         } catch (e: BindException) {
             Toast.makeText(context.applicationContext, "Port $port is already in use", Toast.LENGTH_LONG).show()
             Log.e(TAG, "Port $port is already in use. Please choose a different port.")

@@ -18,7 +18,7 @@ package com.yashraj.datastoreinspector.inspector.server
 import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
-import com.yashraj.datastoreinspector.inspector.DatastoreInspector
+import com.yashraj.datastoreinspector.inspector.DataStoreInspector
 import com.yashraj.datastoreinspector.inspector.handler.PreferencesDataStoreHandler
 import com.yashraj.datastoreinspector.inspector.handler.ProtoDataStoreHandler
 import com.yashraj.datastoreinspector.inspector.handler.SharedPreferenceHandler
@@ -27,8 +27,8 @@ import kotlin.jvm.java
 internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(port) {
 
     private val prefsHandler = SharedPreferenceHandler(context)
-    private val dataStoreHandler = PreferencesDataStoreHandler(DatastoreInspector.getDataStores())
-    private val protoHandler = ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores())
+    private val dataStoreHandler = PreferencesDataStoreHandler(DataStoreInspector.getDataStores())
+    private val protoHandler = ProtoDataStoreHandler(DataStoreInspector.getProtoDataStores())
     private val htmlBytes = context.assets.open("inspector.html").use { it.readBytes() }
 
     companion object {
