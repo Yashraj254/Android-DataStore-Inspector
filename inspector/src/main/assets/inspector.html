@@ -403,6 +403,7 @@
       api('/api/sharedprefs').then(files => {
         const ul = document.getElementById('sp-file-list');
         if (!files.length) { ul.innerHTML = '<li class="empty">No files found.</li>'; return; }
+        files.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         ul.innerHTML = files.map(f =>
           `<li data-name="${f}"><span class="chip"></span><span class="file-name">${f}</span></li>`
         ).join('');
@@ -433,6 +434,7 @@
       const empty = document.getElementById('sp-kv-empty');
       if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
       empty.style.display = 'none';
+      entries.sort((a, b) => a.key.localeCompare(b.key, undefined, { sensitivity: 'base' }));
       tbody.innerHTML = entries.map(e => `
         <tr data-key="${esc(e.key)}" data-type="${esc(e.type)}">
           <td>${esc(e.key)}</td>
@@ -486,6 +488,7 @@
       api('/api/datastore').then(names => {
         const ul = document.getElementById('ds-file-list');
         if (!names.length) { ul.innerHTML = '<li class="empty">No stores found.</li>'; return; }
+        names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         ul.innerHTML = names.map(n =>
           `<li data-name="${n}"><span class="chip"></span><span class="file-name">${n}</span></li>`
         ).join('');
@@ -516,6 +519,7 @@
       const empty = document.getElementById('ds-kv-empty');
       if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
       empty.style.display = 'none';
+      entries.sort((a, b) => a.key.localeCompare(b.key, undefined, { sensitivity: 'base' }));
       tbody.innerHTML = entries.map(e => `
         <tr data-key="${esc(e.key)}" data-type="${esc(e.type)}">
           <td>${esc(e.key)}</td>
@@ -568,6 +572,7 @@
       api('/api/proto').then(names => {
         const ul = document.getElementById('proto-file-list');
         if (!names.length) { ul.innerHTML = '<li class="empty">No proto stores found.</li>'; return; }
+        names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         ul.innerHTML = names.map(n =>
           `<li data-name="${n}"><span class="chip"></span><span class="file-name">${n}</span></li>`
         ).join('');
@@ -598,6 +603,7 @@
       const empty = document.getElementById('proto-kv-empty');
       if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
       empty.style.display = 'none';
+      entries.sort((a, b) => a.key.localeCompare(b.key, undefined, { sensitivity: 'base' }));
       tbody.innerHTML = entries.map(e => `
         <tr data-key="${esc(e.key)}" data-type="${esc(e.type)}">
           <td>${esc(e.key)}</td>
