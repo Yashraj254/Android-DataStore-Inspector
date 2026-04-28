@@ -30,7 +30,6 @@ import com.google.gson.Gson
 import com.yashraj.datastoreinspector.inspector.model.PreferenceEntry
 import com.yashraj.datastoreinspector.inspector.utils.getType
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 
 internal class PreferencesDataStoreHandler(private val dataStores: Map<String, DataStore<Preferences>>) {
 
@@ -44,9 +43,9 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
 
 
     // Read all preferences from a registered DataStore.
-    fun getAll(name: String): List<PreferenceEntry> {
+    suspend fun getAll(name: String): List<PreferenceEntry> {
         val dataStore = dataStores[name] ?: return emptyList()
-        val prefs = runBlocking { dataStore.data.first() }
+        val prefs = dataStore.data.first()
 
         return prefs.asMap().map { (key, value) ->
             PreferenceEntry(
@@ -58,48 +57,44 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
     }
 
     // Update a value in a registered DataStore with proper type handling
-    fun update(name: String, key: String, value: String, type: String) {
+    suspend fun update(name: String, key: String, value: String, type: String) {
         val dataStore = dataStores[name] ?: return
-        runBlocking {
-            dataStore.edit { prefs ->
-                when (type) {
-                    "String" -> prefs[stringPreferencesKey(key)] = value
-                    "Int" -> prefs[intPreferencesKey(key)] = value.toInt()
-                    "Long" -> prefs[longPreferencesKey(key)] = value.toLong()
-                    "Float" -> prefs[floatPreferencesKey(key)] = value.toFloat()
-                    "Double" -> prefs[doublePreferencesKey(key)] = value.toDouble()
-                    "Boolean" -> prefs[booleanPreferencesKey(key)] = value.toBoolean()
-                    "StringSet" -> prefs[stringSetPreferencesKey(key)] = gson.fromJson(value, Array<String>::class.java).toSet()
-                }
+        dataStore.edit { prefs ->
+            when (type) {
+                "String" -> prefs[stringPreferencesKey(key)] = value
+                "Int" -> prefs[intPreferencesKey(key)] = value.toInt()
+                "Long" -> prefs[longPreferencesKey(key)] = value.toLong()
+                "Float" -> prefs[floatPreferencesKey(key)] = value.toFloat()
+                "Double" -> prefs[doublePreferencesKey(key)] = value.toDouble()
+                "Boolean" -> prefs[booleanPreferencesKey(key)] = value.toBoolean()
+                "StringSet" -> prefs[stringSetPreferencesKey(key)] = gson.fromJson(value, Array<String>::class.java).toSet()
             }
         }
         Log.d(TAG, "Updated DataStore: $name[$key] = $value (type: $type)")
     }
 
     // Delete a key from a registered DataStore with proper type handling
-    fun delete(name: String, key: String, type: String) {
+    suspend fun delete(name: String, key: String, type: String) {
         val dataStore = dataStores[name] ?: return
-        runBlocking {
-            dataStore.edit { prefs ->
-                val typedKey = when (type) {
-                    "String" -> stringPreferencesKey(key)
-                    "Int" -> intPreferencesKey(key)
-                    "Long" -> longPreferencesKey(key)
-                    "Float" -> floatPreferencesKey(key)
-                    "Double" -> doublePreferencesKey(key)
-                    "Boolean" -> booleanPreferencesKey(key)
-                    "StringSet" -> stringSetPreferencesKey(key)
-                    else -> stringPreferencesKey(key)
-                }
-                prefs.remove(typedKey)
+        dataStore.edit { prefs ->
+            val typedKey = when (type) {
+                "String" -> stringPreferencesKey(key)
+                "Int" -> intPreferencesKey(key)
+                "Long" -> longPreferencesKey(key)
+                "Float" -> floatPreferencesKey(key)
+                "Double" -> doublePreferencesKey(key)
+                "Boolean" -> booleanPreferencesKey(key)
+                "StringSet" -> stringSetPreferencesKey(key)
+                else -> stringPreferencesKey(key)
             }
+            prefs.remove(typedKey)
         }
         Log.d(TAG, "Deleted DataStore key: $name[$key]")
     }
 
-    fun clear(name: String) {
+    suspend fun clear(name: String) {
         val dataStore = dataStores[name] ?: return
-        runBlocking { dataStore.edit { it.clear() } }
+        dataStore.edit { it.clear() }
         Log.d(TAG, "Cleared DataStore: $name")
     }
 

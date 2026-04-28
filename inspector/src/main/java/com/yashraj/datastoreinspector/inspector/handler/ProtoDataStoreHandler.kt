@@ -19,7 +19,6 @@ import android.util.Log
 import com.yashraj.datastoreinspector.inspector.model.ProtoEntry
 import com.yashraj.datastoreinspector.inspector.proto.ProtoDataStoreHolder
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
 
 internal class ProtoDataStoreHandler(private val protoDataStores: Map<String, ProtoDataStoreHolder<*>>) {
 
@@ -30,20 +29,18 @@ internal class ProtoDataStoreHandler(private val protoDataStores: Map<String, Pr
     fun listProtoStores(): List<String> = protoDataStores.keys.toList()
 
     @Suppress("UNCHECKED_CAST")
-    fun getAll(name: String): List<ProtoEntry> {
+    suspend fun getAll(name: String): List<ProtoEntry> {
         val holder = protoDataStores[name] as? ProtoDataStoreHolder<Any> ?: return emptyList()
-        val proto = runBlocking { holder.dataStore.data.first() }
+        val proto = holder.dataStore.data.first()
         val entries = holder.mapper.toEntries(proto)
         Log.d(TAG, "Proto DataStore: $name, fields: ${entries.size}")
         return entries
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun update(name: String, key: String, value: String) {
+    suspend fun update(name: String, key: String, value: String) {
         val holder = protoDataStores[name] as? ProtoDataStoreHolder<Any> ?: return
-        runBlocking {
-            holder.dataStore.updateData { old -> holder.mapper.updateField(old, key, value) }
-        }
+        holder.dataStore.updateData { old -> holder.mapper.updateField(old, key, value) }
         Log.d(TAG, "Updated Proto DataStore: $name[$key] = $value")
     }
 }

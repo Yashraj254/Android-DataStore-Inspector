@@ -16,14 +16,17 @@
 package com.yashraj.datastoreinspector.inspector.server
 
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 
 internal abstract class SimpleHttpServer(private val port: Int) {
@@ -53,7 +56,7 @@ internal abstract class SimpleHttpServer(private val port: Int) {
     }
 
     // Override this to handle requests
-    abstract fun serve(request: Request): Response
+    abstract suspend fun serve(request: Request): Response
 
     protected fun respond(status: Status, mimeType: String, body: String): Response =
         Response(status, mimeType, body)
@@ -62,17 +65,19 @@ internal abstract class SimpleHttpServer(private val port: Int) {
     private var running = false  // @Volatile so accept-thread sees stop() immediately
     private var serverSocket: ServerSocket? = null
     private var acceptThread: Thread? = null
-    private var workerPool: ExecutorService? = null  // reuses idle threads across requests
+    // Each request runs as a coroutine on Dispatchers.IO; SupervisorJob isolates failures.
+    private var scope: CoroutineScope? = null
 
     fun start() {
         serverSocket = ServerSocket(port)
         running = true
-        workerPool = Executors.newCachedThreadPool()
+        val requestScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        scope = requestScope
         acceptThread = Thread({
             while (running) {
                 try {
                     val client = serverSocket?.accept() ?: break // blocks until browser connects
-                    workerPool?.submit { handleClient(client) }  // hand off so we can accept next
+                    requestScope.launch { handleClient(client) } // hand off so we can accept next
                 } catch (e: SocketException) {
                     if (running) Log.e(TAG, "Accept interrupted unexpectedly", e) // normal on stop()
                 } catch (e: Exception) {
@@ -86,11 +91,12 @@ internal abstract class SimpleHttpServer(private val port: Int) {
         running = false
         serverSocket?.close()       // unblocks accept() via SocketException
         acceptThread?.join(2_000)   // wait for accept thread to exit
-        workerPool?.shutdown()      // finish in-flight requests, accept no new ones
+        scope?.cancel()             // cancel in-flight request coroutines
+        scope = null
     }
 
 
-    private fun handleClient(socket: Socket) {
+    private suspend fun handleClient(socket: Socket) {
         socket.soTimeout = 30_000
         socket.use {
             try {

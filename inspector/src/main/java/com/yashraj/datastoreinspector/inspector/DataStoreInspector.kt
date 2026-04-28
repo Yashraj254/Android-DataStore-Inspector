@@ -25,13 +25,14 @@ import com.yashraj.datastoreinspector.inspector.proto.ProtoInspectorMapper
 import com.yashraj.datastoreinspector.inspector.proto.ReflectiveProtoMapper
 import com.yashraj.datastoreinspector.inspector.server.InspectorServer
 import java.net.BindException
+import java.util.concurrent.ConcurrentHashMap
 
 object DataStoreInspector {
 
     private const val TAG = "DataStoreInspector"
 
-    private val registeredDataStores = mutableMapOf<String, DataStore<Preferences>>()
-    private val registeredProtoDataStores = mutableMapOf<String, ProtoDataStoreHolder<*>>()
+    private val registeredDataStores = ConcurrentHashMap<String, DataStore<Preferences>>()
+    private val registeredProtoDataStores = ConcurrentHashMap<String, ProtoDataStoreHolder<*>>()
     private var server: InspectorServer? = null
     private var isRunning = false
 

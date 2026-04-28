@@ -34,9 +34,10 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
     companion object {
         private const val TAG = "InspectorServer"
         private val gson = Gson()
+        private const val MAX_BODY_BYTES = 1 * 1024 * 1024
     }
 
-    override fun serve(request: Request): Response {
+    override suspend fun serve(request: Request): Response {
         Log.d(TAG, "Request: ${request.method} ${request.uri}")
         val uri = request.uri
         return when {
@@ -101,7 +102,7 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
         return json(emptyMap<String, String>())
     }
 
-    private fun handleDataStorePut(request: Request, name: String): Response {
+    private suspend fun handleDataStorePut(request: Request, name: String): Response {
         val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
         val req = gson.fromJson(body, PutRequest::class.java)
         validateValue(req.value, req.type)?.let { return error400("Type mismatch for '${req.key}': $it") }
@@ -109,14 +110,14 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
         return json(emptyMap<String, String>())
     }
 
-    private fun handleDataStoreDelete(request: Request, name: String): Response {
+    private suspend fun handleDataStoreDelete(request: Request, name: String): Response {
         val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
         val req = gson.fromJson(body, TypedDeleteRequest::class.java)
         dataStoreHandler.delete(name, req.key, req.type)
         return json(emptyMap<String, String>())
     }
 
-    private fun handleProtoPut(request: Request, name: String): Response {
+    private suspend fun handleProtoPut(request: Request, name: String): Response {
         val body = readBody(request) ?: return error400("Missing request body")
         val req = gson.fromJson(body, ProtoUpdateRequest::class.java)
         protoHandler.update(name, req.key, req.value)
@@ -145,7 +146,11 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
 
     private fun readBody(request: Request): String? {
         val len = request.headers["content-length"]?.toIntOrNull() ?: return null
-        if (len == 0) return null
+        if (len <= 0) return null
+        if (len > MAX_BODY_BYTES) {
+            Log.w(TAG, "Rejecting body: Content-Length $len exceeds cap $MAX_BODY_BYTES")
+            return null
+        }
         val buf = ByteArray(len)
         var offset = 0
         while (offset < len) {
