@@ -192,7 +192,7 @@
     <div class="auto-refresh">
         <input type="checkbox" id="autoRefreshToggle" />
         <label for="autoRefreshToggle">Auto-refresh every</label>
-        <input type="number" id="autoRefreshInterval" value="3000" min="1000" placeholder="min 1000" disabled />
+        <input type="number" id="autoRefreshInterval" value="1000" min="1000" placeholder="min 1000" disabled />
         <span>ms</span>
     </div>
     <button class="theme-btn" id="themeToggle">🌙 Dark</button>
@@ -668,7 +668,7 @@
     autoRefreshToggle.addEventListener('change', () => {
       autoRefreshInterval.disabled = !autoRefreshToggle.checked;
       if (autoRefreshToggle.checked) {
-        const ms = Math.max(1000, parseInt(autoRefreshInterval.value) || 3000);
+        const ms = Math.max(1000, parseInt(autoRefreshInterval.value) || 1000);
         autoRefreshTimer = setInterval(refreshCurrentTab, ms);
       } else {
         clearInterval(autoRefreshTimer);
@@ -677,7 +677,7 @@
     });
 
     autoRefreshInterval.addEventListener('change', () => {
-      const ms = Math.max(1000, parseInt(autoRefreshInterval.value) || 3000);
+      const ms = Math.max(1000, parseInt(autoRefreshInterval.value) || 1000);
       autoRefreshInterval.value = ms;
       if (!autoRefreshToggle.checked) return;
       clearInterval(autoRefreshTimer);
