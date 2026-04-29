@@ -125,7 +125,6 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
     }
 
 
-    // Validate that the provided value can be parsed as the expected type
     private fun validateValue(value: String, type: String): String? = when (type) {
         "Int"     -> if (value.toIntOrNull() == null)
             "\"$value\" is not a valid Int" else null
@@ -136,8 +135,9 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
         "Double"  -> if (value.toDoubleOrNull() == null)
             "\"$value\" is not a valid Double" else null
         "Boolean" -> if (value != "true" && value != "false")
-            "\"$value\" is not a valid Boolean — must be \"true\" or \"false\"" else null
-        else      -> null  // String, StringSet, Enum — accept as-is
+            "\"$value\" is not a valid Boolean. Must be \"true\" or \"false\"" else null
+        // String, StringSet, and Enum values are validated by the handler at write time.
+        else      -> null
     }
 
     private fun error400(message: String): Response =
@@ -158,7 +158,7 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
             if (read == -1) break
             offset += read
         }
-        return String(buf, 0, offset)
+        return String(buf, 0, offset, Charsets.UTF_8)
     }
 
     private fun json(data: Any): Response =

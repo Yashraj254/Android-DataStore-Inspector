@@ -30,7 +30,6 @@ internal class SharedPreferenceHandler(private val context: Context) {
         val gson = Gson()
     }
 
-    // Get list of all SharedPreferences file names (without .xml extension) in the app's shared_prefs directory
     fun listAll(): List<String> {
         val prefsDir = File(context.applicationInfo.dataDir, "shared_prefs")
         if (!prefsDir.exists()) return emptyList()
@@ -42,7 +41,6 @@ internal class SharedPreferenceHandler(private val context: Context) {
             ?: emptyList()
     }
 
-    // Get list of PreferenceEntry, which includes the key, value, and type of each entry
     fun getAllWithTypes(name: String): List<PreferenceEntry> {
         val prefs = context.getSharedPreferences(name, Context.MODE_PRIVATE)
         return prefs.all.map { (key, value) ->
@@ -53,7 +51,7 @@ internal class SharedPreferenceHandler(private val context: Context) {
             )
         }.sortedBy { it.key }
     }
-    // Update a value in SharedPreferences with proper type handling
+
     fun update(name: String, key: String, value: String, type: String) {
         context.getSharedPreferences(name, Context.MODE_PRIVATE).edit {
             when (type) {

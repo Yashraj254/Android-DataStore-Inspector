@@ -35,15 +35,26 @@ object DataStoreInspector {
     private val registeredProtoDataStores = ConcurrentHashMap<String, ProtoDataStoreHolder<*>>()
     private var server: InspectorServer? = null
     private var isRunning = false
+    private var currentPort: Int = -1
 
-    // Register a DataStore instance for inspection
+    /**
+     * Registers a Preferences DataStore for inspection under [name].
+     *
+     * Returns this object so calls can be chained.
+     */
     fun registerDataStore(name: String, dataStore: DataStore<Preferences>): DataStoreInspector {
         registeredDataStores[name] = dataStore
         Log.d(TAG, "Registered DataStore: $name")
         return this
     }
 
-    // Register a Proto DataStore. Pass a custom mapper to override field read/write behavior, defaults to reflection.
+    /**
+     * Registers a Proto DataStore for inspection under [name].
+     *
+     * If [mapper] is null, fields are read and written via reflection over the generated
+     * proto class. Provide a [ProtoInspectorMapper] to control the exposed field set or
+     * to support proto types that the reflective mapper cannot introspect.
+     */
     fun <T : Any> registerProto(
         name: String,
         dataStore: DataStore<T>,
@@ -54,16 +65,30 @@ object DataStoreInspector {
         return this
     }
 
-    // Start the inspector, Auto-started via App Startup Initializer, call manually only to use a custom port.
+    /**
+     * Starts the inspector HTTP server on [port] (default 3000).
+     *
+     * The library auto-starts via App Startup before `Application.onCreate()`, so by the time
+     * your code runs the server is already bound to port 3000 and this call is a no-op.
+     * To use a custom port, disable the auto-start initializer in your manifest. See the
+     * project README for the manifest snippet.
+     */
     fun start(context: Context, port: Int = 3000) {
         if (isRunning) {
-            Log.w(TAG, "Inspector already started")
+            if (port != currentPort) {
+                Log.w(
+                    TAG,
+                    "Inspector already running on port $currentPort; ignoring start(port=$port). " +
+                        "To use a custom port, disable DataStoreInspectorInitializer in your manifest."
+                )
+            }
             return
         }
         try {
             server = InspectorServer(context.applicationContext, port)
             server?.start()
             isRunning = true
+            currentPort = port
             Toast.makeText(context.applicationContext, "DataStore Inspector started on port $port", Toast.LENGTH_SHORT).show()
         } catch (e: BindException) {
             Toast.makeText(context.applicationContext, "Port $port is already in use", Toast.LENGTH_LONG).show()
@@ -74,10 +99,16 @@ object DataStoreInspector {
         Log.d(TAG, "Server started on port $port")
     }
 
+    /**
+     * Stops the inspector HTTP server and releases its socket. Safe to call when the
+     * server is not running. Registered DataStores are kept and will be served again
+     * if [start] is called later.
+     */
     fun stop() {
         server?.stop()
         server = null
         isRunning = false
+        currentPort = -1
         Log.d(TAG, "Inspector stopped")
     }
 

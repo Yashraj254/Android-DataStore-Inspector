@@ -15,6 +15,14 @@
  */
 package com.yashraj.datastoreinspector.inspector.model
 
+/**
+ * A single inspectable field of a Proto DataStore message.
+ *
+ * @property key Field name shown in the UI and used as the lookup key for updates.
+ * @property value Current field value rendered as a string.
+ * @property type One of `"String"`, `"Int"`, `"Long"`, `"Float"`, `"Double"`, `"Boolean"`,
+ * Drives input validation in the inspector UI.
+ */
 data class ProtoEntry(
     val key: String,
     val value: String,

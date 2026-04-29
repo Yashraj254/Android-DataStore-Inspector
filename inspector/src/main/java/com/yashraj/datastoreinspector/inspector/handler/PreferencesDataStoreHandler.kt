@@ -42,7 +42,6 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
     fun listDataStores(): List<String> = dataStores.keys.toList()
 
 
-    // Read all preferences from a registered DataStore.
     suspend fun getAll(name: String): List<PreferenceEntry> {
         val dataStore = dataStores[name] ?: return emptyList()
         val prefs = dataStore.data.first()
@@ -56,7 +55,6 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
         }.sortedBy { it.key }
     }
 
-    // Update a value in a registered DataStore with proper type handling
     suspend fun update(name: String, key: String, value: String, type: String) {
         val dataStore = dataStores[name] ?: return
         dataStore.edit { prefs ->
@@ -73,7 +71,6 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
         Log.d(TAG, "Updated DataStore: $name[$key] = $value (type: $type)")
     }
 
-    // Delete a key from a registered DataStore with proper type handling
     suspend fun delete(name: String, key: String, type: String) {
         val dataStore = dataStores[name] ?: return
         dataStore.edit { prefs ->

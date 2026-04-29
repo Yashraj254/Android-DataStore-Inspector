@@ -7,11 +7,13 @@ class SampleApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-//      DataStoreInspector.start(this, 3000) // optional if using the App Startup auto-start else call manually to specify a custom port
+        // Auto-started by App Startup. Call start() manually only to override the port.
+        // DataStoreInspector.start(this, 3000)
         DataStoreInspector.registerDataStore("user_preferences", prefsDataStore)
-            // Use one of the two below:
-            .registerProto("user_prefs", protoDataStore, UserPreferencesProtoMapper()) // custom mapper — explicit fields, no reflection
-//          .registerProto("user_prefs", protoDataStore) // default mapper — uses reflection to discover fields
+            // Pick one registerProto() call. The explicit mapper is preferred when field
+            // names matter; the no-mapper form uses reflection to discover them.
+            .registerProto("user_prefs", protoDataStore, UserPreferencesProtoMapper())
+        //  .registerProto("user_prefs", protoDataStore)
     }
 
 }

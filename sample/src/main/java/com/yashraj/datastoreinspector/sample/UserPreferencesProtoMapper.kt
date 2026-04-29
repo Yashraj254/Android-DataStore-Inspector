@@ -4,8 +4,8 @@ import com.yashraj.datastoreinspector.inspector.model.ProtoEntry
 import com.yashraj.datastoreinspector.inspector.proto.ProtoInspectorMapper
 import com.yashraj.datastoreinspector.sample.proto.UserPreferences
 
-// Custom mapper for UserPreferences — no reflection, fields are read/written directly.
-// Use this instead of ReflectiveProtoMapper when you want predictable field names,
+// Custom mapper for UserPreferences. Use this in place of ReflectiveProtoMapper
+// when you want explicit control over field names and value parsing.
 class UserPreferencesProtoMapper : ProtoInspectorMapper<UserPreferences> {
 
     override fun toEntries(proto: UserPreferences): List<ProtoEntry> = listOf(

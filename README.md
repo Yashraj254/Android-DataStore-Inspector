@@ -93,10 +93,34 @@ http://<device-ip>:3000
 
 ## Custom port
 
-The default port is `3000`. To use a different port, call `start()` manually before any other registration:
+The default port is `3000`. The inspector auto-starts via App Startup before `Application.onCreate()` runs, so calling `start(port = 8080)` from your `Application` will be a no-op (the server is already bound to 3000).
+
+To use a custom port, first disable the auto-start initializer in your `AndroidManifest.xml`:
+
+```xml
+<application>
+    <provider
+        android:name="androidx.startup.InitializationProvider"
+        android:authorities="${applicationId}.androidx-startup"
+        android:exported="false"
+        tools:node="merge">
+        <meta-data
+            android:name="com.yashraj.datastoreinspector.inspector.DataStoreInspectorInitializer"
+            tools:node="remove" />
+    </provider>
+</application>
+```
+
+Then call `start()` yourself in `Application.onCreate()`:
 
 ```kotlin
-DataStoreInspector.start(this, port = 8080)
+class SampleApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        DataStoreInspector.start(this, port = 8080)
+        DataStoreInspector.registerDataStore("user_preferences", userPreferencesDataStore)
+    }
+}
 ```
 
 ---
