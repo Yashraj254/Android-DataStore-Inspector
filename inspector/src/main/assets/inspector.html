@@ -412,6 +412,7 @@
             ul.querySelectorAll('li').forEach(x => x.classList.remove('selected'));
             li.classList.add('selected');
             spSelected = li.dataset.name;
+            document.getElementById('sp-search').value = '';
             loadSpKeys(spSelected);
           });
         });
@@ -420,7 +421,6 @@
     }
 
     function loadSpKeys(name) {
-      document.getElementById('sp-search').value = '';
       document.getElementById('sp-select-hint').style.display = 'none';
       document.getElementById('sp-kv-panel').style.display = 'block';
       document.getElementById('sp-kv-title').textContent = name;
@@ -457,6 +457,7 @@
             .catch(() => toast('Delete failed'));
         });
       });
+      filterTable('sp-kv-body', 'sp-kv-empty', document.getElementById('sp-search').value);
     }
 
     function spStartEdit(tr, name) {
@@ -497,6 +498,7 @@
             ul.querySelectorAll('li').forEach(x => x.classList.remove('selected'));
             li.classList.add('selected');
             dsSelected = li.dataset.name;
+            document.getElementById('ds-search').value = '';
             loadDsKeys(dsSelected);
           });
         });
@@ -505,7 +507,6 @@
     }
 
     function loadDsKeys(name) {
-      document.getElementById('ds-search').value = '';
       document.getElementById('ds-select-hint').style.display = 'none';
       document.getElementById('ds-kv-panel').style.display = 'block';
       document.getElementById('ds-kv-title').textContent = name;
@@ -542,6 +543,7 @@
             .catch(() => toast('Delete failed'));
         });
       });
+      filterTable('ds-kv-body', 'ds-kv-empty', document.getElementById('ds-search').value);
     }
 
     function dsStartEdit(tr, name) {
@@ -581,6 +583,7 @@
             ul.querySelectorAll('li').forEach(x => x.classList.remove('selected'));
             li.classList.add('selected');
             protoSelected = li.dataset.name;
+            document.getElementById('proto-search').value = '';
             loadProtoFields(protoSelected);
           });
         });
@@ -589,7 +592,6 @@
     }
 
     function loadProtoFields(name) {
-      document.getElementById('proto-search').value = '';
       document.getElementById('proto-select-hint').style.display = 'none';
       document.getElementById('proto-kv-panel').style.display = 'block';
       document.getElementById('proto-kv-title').textContent = name;
@@ -617,6 +619,7 @@
       tbody.querySelectorAll('.proto-edit-btn').forEach(btn => {
         btn.addEventListener('click', () => protoStartEdit(btn.closest('tr'), name));
       });
+      filterTable('proto-kv-body', 'proto-kv-empty', document.getElementById('proto-search').value);
     }
 
     function protoStartEdit(tr, name) {
