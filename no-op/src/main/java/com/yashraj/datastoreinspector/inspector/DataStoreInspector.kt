@@ -29,7 +29,7 @@ object DataStoreInspector {
         mapper: ProtoInspectorMapper<T>? = null
     ): DataStoreInspector = this
 
-    fun start(context: Context, port: Int = 3000) = Unit
+    fun start(context: Context, port: Int = 5050) = Unit
 
     fun stop() = Unit
 }

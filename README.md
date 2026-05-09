@@ -76,26 +76,36 @@ class SampleApplication : Application() {
 Run this once to forward the port:
 
 ```
-adb forward tcp:3000 tcp:3000
+adb forward tcp:5050 tcp:5050
 ```
 
-Then open `http://localhost:3000` in your browser.
+Then open `http://localhost:5050` in your browser.
 
 ### On a physical device over Wi-Fi
 
 Find your device's IP address (`Settings → About → IP address`) and open:
 
 ```
-http://<device-ip>:3000
+http://<device-ip>:5050
 ```
 
 ---
 
 ## Custom port
 
-The default port is `3000`. The inspector auto-starts via App Startup before `Application.onCreate()` runs, so calling `start(port = 8080)` from your `Application` will be a no-op (the server is already bound to 3000).
+The default port is `5050`. The inspector auto-starts via App Startup before `Application.onCreate()` runs, so the server is already bound to 5050 by the time your code runs. To use a different port, just call `start()` with the port you want — the auto-started server will be stopped and rebound on the requested port:
 
-To use a custom port, first disable the auto-start initializer in your `AndroidManifest.xml`:
+```kotlin
+class SampleApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        DataStoreInspector.start(this, port = 8080)
+        DataStoreInspector.registerDataStore("user_preferences", userPreferencesDataStore)
+    }
+}
+```
+
+If you'd rather skip the brief restart and have the server bind directly to your custom port, disable the auto-start initializer in your `AndroidManifest.xml`:
 
 ```xml
 <application>
@@ -109,18 +119,6 @@ To use a custom port, first disable the auto-start initializer in your `AndroidM
             tools:node="remove" />
     </provider>
 </application>
-```
-
-Then call `start()` yourself in `Application.onCreate()`:
-
-```kotlin
-class SampleApplication : Application() {
-    override fun onCreate() {
-        super.onCreate()
-        DataStoreInspector.start(this, port = 8080)
-        DataStoreInspector.registerDataStore("user_preferences", userPreferencesDataStore)
-    }
-}
 ```
 
 ---

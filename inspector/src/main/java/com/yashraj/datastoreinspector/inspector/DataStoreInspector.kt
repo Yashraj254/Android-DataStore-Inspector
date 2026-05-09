@@ -16,6 +16,7 @@
 package com.yashraj.datastoreinspector.inspector
 
 import android.content.Context
+import android.content.pm.ApplicationInfo
 import android.util.Log
 import android.widget.Toast
 import androidx.datastore.core.DataStore
@@ -30,6 +31,7 @@ import java.util.concurrent.ConcurrentHashMap
 object DataStoreInspector {
 
     private const val TAG = "DataStoreInspector"
+    private const val DEFAULT_PORT = 5050
 
     private val registeredDataStores = ConcurrentHashMap<String, DataStore<Preferences>>()
     private val registeredProtoDataStores = ConcurrentHashMap<String, ProtoDataStoreHolder<*>>()
@@ -66,32 +68,45 @@ object DataStoreInspector {
     }
 
     /**
-     * Starts the inspector HTTP server on [port] (default 3000).
+     * Starts the inspector HTTP server on [port] (default 5050).
      *
      * The library auto-starts via App Startup before `Application.onCreate()`, so by the time
-     * your code runs the server is already bound to port 3000 and this call is a no-op.
-     * To use a custom port, disable the auto-start initializer in your manifest. See the
-     * project README for the manifest snippet.
+     * your code runs the server is already bound to port 5050. Calling this with a custom
+     * [port] will stop the auto-started server and rebind on the requested port. If the
+     * server has already been moved to a non-default port, a subsequent call with a different
+     * port is treated as a conflict and ignored with a warning.
      */
-    fun start(context: Context, port: Int = 3000) {
-        if (isRunning) {
-            if (port != currentPort) {
-                Log.w(
-                    TAG,
-                    "Inspector already running on port $currentPort; ignoring start(port=$port). " +
-                        "To use a custom port, disable DataStoreInspectorInitializer in your manifest."
-                )
-            }
+    fun start(context: Context, port: Int = DEFAULT_PORT) {
+        val appContext = context.applicationContext
+        // Refuse to run in non-debuggable builds. The inspector exposes full read/write access
+        // to every registered DataStore and SharedPreferences, so a release APK must never start
+        // a server even if a consumer accidentally calls start() or leaves the auto-initializer in.
+        if ((appContext.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) == 0) {
+            Log.i(TAG, "Inspector not started: app is not debuggable.")
             return
         }
+        if (isRunning) {
+            if (port == currentPort) return
+            if (currentPort == DEFAULT_PORT) {
+                Log.i(TAG, "Restarting inspector on port $port (was $currentPort)")
+                stop()
+                // fall through to start on the new port
+            } else {
+                Log.w(
+                    TAG,
+                    "Inspector already running on port $currentPort; ignoring start(port=$port)."
+                )
+                return
+            }
+        }
         try {
-            server = InspectorServer(context.applicationContext, port)
+            server = InspectorServer(appContext, port)
             server?.start()
             isRunning = true
             currentPort = port
-            Toast.makeText(context.applicationContext, "DataStore Inspector started on port $port", Toast.LENGTH_SHORT).show()
+            Toast.makeText(appContext, "DataStore Inspector started on port $port", Toast.LENGTH_SHORT).show()
         } catch (e: BindException) {
-            Toast.makeText(context.applicationContext, "Port $port is already in use", Toast.LENGTH_LONG).show()
+            Toast.makeText(appContext, "Port $port is already in use", Toast.LENGTH_LONG).show()
             Log.e(TAG, "Port $port is already in use. Please choose a different port.")
             return
         }

@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
+import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
@@ -68,8 +69,7 @@ internal abstract class SimpleHttpServer(private val port: Int) {
     @Synchronized
     fun start() {
         if (running) return
-        // If bind fails, leave running=false so the caller can retry on a different port.
-        val socket = ServerSocket(port)
+        val socket = ServerSocket(port, 50, InetAddress.getByName("127.0.0.1"))
         serverSocket = socket
         running = true
         val requestScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
