@@ -16,6 +16,7 @@
 package com.yashraj.datastoreinspector.inspector.server
 
 import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -132,6 +133,8 @@ internal abstract class SimpleHttpServer(private val port: Int) {
                 val response = serve(Request(method, uri, headers, input))
                 writeResponse(output, response)
 
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 Log.e(TAG, "Client error", e)
             }

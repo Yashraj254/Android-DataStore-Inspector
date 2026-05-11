@@ -71,23 +71,13 @@ class SampleApplication : Application() {
 
 ## Open the inspector
 
-### On an emulator or device connected via USB
-
-Run this once to forward the port:
+Forward the port (works over USB or wireless adb):
 
 ```
 adb forward tcp:5050 tcp:5050
 ```
 
 Then open `http://localhost:5050` in your browser.
-
-### On a physical device over Wi-Fi
-
-Find your device's IP address (`Settings → About → IP address`) and open:
-
-```
-http://<device-ip>:5050
-```
 
 ---
 

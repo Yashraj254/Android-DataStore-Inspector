@@ -76,6 +76,7 @@ object DataStoreInspector {
      * server has already been moved to a non-default port, a subsequent call with a different
      * port is treated as a conflict and ignored with a warning.
      */
+    @Synchronized
     fun start(context: Context, port: Int = DEFAULT_PORT) {
         val appContext = context.applicationContext
         // Refuse to run in non-debuggable builds. The inspector exposes full read/write access
@@ -119,6 +120,7 @@ object DataStoreInspector {
      * server is not running. Registered DataStores are kept and will be served again
      * if [start] is called later.
      */
+    @Synchronized
     fun stop() {
         server?.stop()
         server = null
