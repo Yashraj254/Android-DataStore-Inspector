@@ -19,6 +19,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.util.Log
 import android.widget.Toast
+import androidx.annotation.UiThread
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import com.yashraj.datastoreinspector.inspector.proto.ProtoDataStoreHolder
@@ -77,6 +78,7 @@ object DataStoreInspector {
      * port is treated as a conflict and ignored with a warning.
      */
     @Synchronized
+    @UiThread
     fun start(context: Context, port: Int = DEFAULT_PORT) {
         val appContext = context.applicationContext
         // Refuse to run in non-debuggable builds. The inspector exposes full read/write access

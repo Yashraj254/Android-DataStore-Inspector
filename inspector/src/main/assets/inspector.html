@@ -405,7 +405,7 @@
         if (!files.length) { ul.innerHTML = '<li class="empty">No files found.</li>'; return; }
         files.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         ul.innerHTML = files.map(f =>
-          `<li data-name="${f}"><span class="chip"></span><span class="file-name">${f}</span></li>`
+          `<li data-name="${esc(f)}"><span class="chip"></span><span class="file-name">${esc(f)}</span></li>`
         ).join('');
         ul.querySelectorAll('li').forEach(li => {
           li.addEventListener('click', () => {
@@ -491,7 +491,7 @@
         if (!names.length) { ul.innerHTML = '<li class="empty">No stores found.</li>'; return; }
         names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         ul.innerHTML = names.map(n =>
-          `<li data-name="${n}"><span class="chip"></span><span class="file-name">${n}</span></li>`
+          `<li data-name="${esc(n)}"><span class="chip"></span><span class="file-name">${esc(n)}</span></li>`
         ).join('');
         ul.querySelectorAll('li').forEach(li => {
           li.addEventListener('click', () => {
@@ -576,7 +576,7 @@
         if (!names.length) { ul.innerHTML = '<li class="empty">No proto stores found.</li>'; return; }
         names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         ul.innerHTML = names.map(n =>
-          `<li data-name="${n}"><span class="chip"></span><span class="file-name">${n}</span></li>`
+          `<li data-name="${esc(n)}"><span class="chip"></span><span class="file-name">${esc(n)}</span></li>`
         ).join('');
         ul.querySelectorAll('li').forEach(li => {
           li.addEventListener('click', () => {

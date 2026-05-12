@@ -18,6 +18,7 @@ package com.yashraj.datastoreinspector.inspector.server
 import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
 import com.yashraj.datastoreinspector.inspector.DataStoreInspector
 import com.yashraj.datastoreinspector.inspector.handler.PreferencesDataStoreHandler
 import com.yashraj.datastoreinspector.inspector.handler.ProtoDataStoreHandler
@@ -88,40 +89,47 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
     }
 
     private fun handleSharedPrefsPut(request: Request, name: String, handler: SharedPreferenceHandler): Response {
-        val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = gson.fromJson(body, PutRequest::class.java)
+        val body = readBody(request) ?: return error400("Missing or oversized body")
+        val req = parseJson(body, PutRequest::class.java) ?: return error400("Invalid JSON body")
         validateValue(req.value, req.type)?.let { return error400("Type mismatch for '${req.key}': $it") }
         handler.update(name, req.key, req.value, req.type)
         return json(emptyMap<String, String>())
     }
 
     private fun handleSharedPrefsDelete(request: Request, name: String, handler: SharedPreferenceHandler): Response {
-        val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = gson.fromJson(body, DeleteRequest::class.java)
+        val body = readBody(request) ?: return error400("Missing or oversized body")
+        val req = parseJson(body, DeleteRequest::class.java) ?: return error400("Invalid JSON body")
         handler.delete(name, req.key)
         return json(emptyMap<String, String>())
     }
 
     private suspend fun handleDataStorePut(request: Request, name: String): Response {
-        val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = gson.fromJson(body, PutRequest::class.java)
+        val body = readBody(request) ?: return error400("Missing or oversized body")
+        val req = parseJson(body, PutRequest::class.java) ?: return error400("Invalid JSON body")
         validateValue(req.value, req.type)?.let { return error400("Type mismatch for '${req.key}': $it") }
         dataStoreHandler.update(name, req.key, req.value, req.type)
         return json(emptyMap<String, String>())
     }
 
     private suspend fun handleDataStoreDelete(request: Request, name: String): Response {
-        val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = gson.fromJson(body, TypedDeleteRequest::class.java)
+        val body = readBody(request) ?: return error400("Missing or oversized body")
+        val req = parseJson(body, TypedDeleteRequest::class.java) ?: return error400("Invalid JSON body")
         dataStoreHandler.delete(name, req.key, req.type)
         return json(emptyMap<String, String>())
     }
 
     private suspend fun handleProtoPut(request: Request, name: String): Response {
-        val body = readBody(request) ?: return error400("Missing request body")
-        val req = gson.fromJson(body, ProtoUpdateRequest::class.java)
+        val body = readBody(request) ?: return error400("Missing or oversized body")
+        val req = parseJson(body, ProtoUpdateRequest::class.java) ?: return error400("Invalid JSON body")
         protoHandler.update(name, req.key, req.value)
         return json(emptyMap<String, String>())
+    }
+
+    private fun <T> parseJson(body: String, cls: Class<T>): T? = try {
+        gson.fromJson(body, cls)
+    } catch (e: JsonSyntaxException) {
+        Log.w(TAG, "JSON parse error", e)
+        null
     }
 
 
@@ -136,7 +144,7 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
             "\"$value\" is not a valid Double" else null
         "Boolean" -> if (value != "true" && value != "false")
             "\"$value\" is not a valid Boolean. Must be \"true\" or \"false\"" else null
-        // String, StringSet, and Enum values are validated by the handler at write time.
+        // String and StringSet values are validated by the handler at write time.
         else      -> null
     }
 
