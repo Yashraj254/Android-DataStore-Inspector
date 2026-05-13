@@ -68,7 +68,7 @@ internal class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
             paramType == Long::class.java -> value.toLong()
             paramType == Float::class.java -> value.toFloat()
             paramType == Double::class.java -> value.toDouble()
-            paramType.isEnum -> paramType.enumConstants?.first { (it as Enum<*>).name == value } ?: return proto
+            paramType.isEnum -> paramType.enumConstants?.firstOrNull { (it as Enum<*>).name == value } ?: return proto
             else -> return proto
         }
         setter.invoke(builder, typedValue)

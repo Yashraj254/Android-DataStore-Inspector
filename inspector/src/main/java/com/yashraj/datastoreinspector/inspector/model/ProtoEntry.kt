@@ -21,7 +21,7 @@ package com.yashraj.datastoreinspector.inspector.model
  * @property key Field name shown in the UI and used as the lookup key for updates.
  * @property value Current field value rendered as a string.
  * @property type One of `"String"`, `"Int"`, `"Long"`, `"Float"`, `"Double"`, `"Boolean"`,
- * Drives input validation in the inspector UI.
+ * or `"Enum"`. Drives input validation in the inspector UI.
  */
 data class ProtoEntry(
     val key: String,

@@ -73,19 +73,20 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
 
     suspend fun delete(name: String, key: String, type: String) {
         val dataStore = dataStores[name] ?: return
-        dataStore.edit { prefs ->
-            val typedKey = when (type) {
-                "String" -> stringPreferencesKey(key)
-                "Int" -> intPreferencesKey(key)
-                "Long" -> longPreferencesKey(key)
-                "Float" -> floatPreferencesKey(key)
-                "Double" -> doublePreferencesKey(key)
-                "Boolean" -> booleanPreferencesKey(key)
-                "StringSet" -> stringSetPreferencesKey(key)
-                else -> stringPreferencesKey(key)
+        val typedKey = when (type) {
+            "String" -> stringPreferencesKey(key)
+            "Int" -> intPreferencesKey(key)
+            "Long" -> longPreferencesKey(key)
+            "Float" -> floatPreferencesKey(key)
+            "Double" -> doublePreferencesKey(key)
+            "Boolean" -> booleanPreferencesKey(key)
+            "StringSet" -> stringSetPreferencesKey(key)
+            else -> {
+                Log.w(TAG, "Refusing to delete $name[$key]: unknown type \"$type\"")
+                return
             }
-            prefs.remove(typedKey)
         }
+        dataStore.edit { prefs -> prefs.remove(typedKey) }
         Log.d(TAG, "Deleted DataStore key: $name[$key]")
     }
 

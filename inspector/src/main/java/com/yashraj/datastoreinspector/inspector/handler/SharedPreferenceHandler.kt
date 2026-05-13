@@ -28,6 +28,7 @@ internal class SharedPreferenceHandler(private val context: Context) {
     companion object {
         private const val TAG = "SharedPreferenceHandler"
         val gson = Gson()
+        private val SUPPORTED_TYPES = setOf("String", "Int", "Long", "Float", "Boolean", "StringSet")
     }
 
     fun listAll(): List<String> {
@@ -53,6 +54,11 @@ internal class SharedPreferenceHandler(private val context: Context) {
     }
 
     fun update(name: String, key: String, value: String, type: String) {
+        // SharedPreferences has no Double API; reject other unknown types too.
+        if (type !in SUPPORTED_TYPES) {
+            Log.w(TAG, "Refusing to write $name[$key]: unsupported SharedPreferences type \"$type\"")
+            return
+        }
         context.getSharedPreferences(name, Context.MODE_PRIVATE).edit {
             when (type) {
                 "String" -> putString(key, value)
