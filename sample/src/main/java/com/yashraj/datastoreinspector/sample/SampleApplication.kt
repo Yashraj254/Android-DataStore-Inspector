@@ -1,17 +1,19 @@
 package com.yashraj.datastoreinspector.sample
 
 import android.app.Application
-import com.yashraj.datastoreinspector.inspector.DatastoreInspector
+import com.yashraj.datastoreinspector.inspector.DataStoreInspector
 
 class SampleApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-//      DatastoreInspector.start(this, 3000) // optional if using the ContentProvider auto-start else call manually to specify a custom port
-        DatastoreInspector.registerDataStore("user_preferences", prefsDataStore)
-            // Use one of the two below:
-            .registerProto("user_prefs", protoDataStore, UserPreferencesProtoMapper()) // custom mapper — explicit fields, no reflection
-//          .registerProto("user_prefs", protoDataStore) // default mapper — uses reflection to discover fields
+        // Auto-started by App Startup. Call start() manually only to override the port.
+//      DataStoreInspector.start(this, 5051)
+        DataStoreInspector.registerDataStore("user_preferences", prefsDataStore)
+            // Pick one registerProto() call. The explicit mapper is preferred when field
+            // names matter; the no-mapper form uses reflection to discover them.
+            .registerProto("user_prefs", protoDataStore, UserPreferencesProtoMapper())
+        //  .registerProto("user_prefs", protoDataStore)
     }
 
 }

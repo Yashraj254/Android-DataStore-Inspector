@@ -192,7 +192,7 @@
     <div class="auto-refresh">
         <input type="checkbox" id="autoRefreshToggle" />
         <label for="autoRefreshToggle">Auto-refresh every</label>
-        <input type="number" id="autoRefreshInterval" value="3000" min="1000" placeholder="min 1000" disabled />
+        <input type="number" id="autoRefreshInterval" value="1000" min="1000" placeholder="min 1000" disabled />
         <span>ms</span>
     </div>
     <button class="theme-btn" id="themeToggle">🌙 Dark</button>
@@ -403,14 +403,16 @@
       api('/api/sharedprefs').then(files => {
         const ul = document.getElementById('sp-file-list');
         if (!files.length) { ul.innerHTML = '<li class="empty">No files found.</li>'; return; }
+        files.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         ul.innerHTML = files.map(f =>
-          `<li data-name="${f}"><span class="chip"></span><span class="file-name">${f}</span></li>`
+          `<li data-name="${esc(f)}"><span class="chip"></span><span class="file-name">${esc(f)}</span></li>`
         ).join('');
         ul.querySelectorAll('li').forEach(li => {
           li.addEventListener('click', () => {
             ul.querySelectorAll('li').forEach(x => x.classList.remove('selected'));
             li.classList.add('selected');
             spSelected = li.dataset.name;
+            document.getElementById('sp-search').value = '';
             loadSpKeys(spSelected);
           });
         });
@@ -419,7 +421,6 @@
     }
 
     function loadSpKeys(name) {
-      document.getElementById('sp-search').value = '';
       document.getElementById('sp-select-hint').style.display = 'none';
       document.getElementById('sp-kv-panel').style.display = 'block';
       document.getElementById('sp-kv-title').textContent = name;
@@ -433,6 +434,7 @@
       const empty = document.getElementById('sp-kv-empty');
       if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
       empty.style.display = 'none';
+      entries.sort((a, b) => a.key.localeCompare(b.key, undefined, { sensitivity: 'base' }));
       tbody.innerHTML = entries.map(e => `
         <tr data-key="${esc(e.key)}" data-type="${esc(e.type)}">
           <td>${esc(e.key)}</td>
@@ -455,6 +457,7 @@
             .catch(() => toast('Delete failed'));
         });
       });
+      filterTable('sp-kv-body', 'sp-kv-empty', document.getElementById('sp-search').value);
     }
 
     function spStartEdit(tr, name) {
@@ -486,14 +489,16 @@
       api('/api/datastore').then(names => {
         const ul = document.getElementById('ds-file-list');
         if (!names.length) { ul.innerHTML = '<li class="empty">No stores found.</li>'; return; }
+        names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         ul.innerHTML = names.map(n =>
-          `<li data-name="${n}"><span class="chip"></span><span class="file-name">${n}</span></li>`
+          `<li data-name="${esc(n)}"><span class="chip"></span><span class="file-name">${esc(n)}</span></li>`
         ).join('');
         ul.querySelectorAll('li').forEach(li => {
           li.addEventListener('click', () => {
             ul.querySelectorAll('li').forEach(x => x.classList.remove('selected'));
             li.classList.add('selected');
             dsSelected = li.dataset.name;
+            document.getElementById('ds-search').value = '';
             loadDsKeys(dsSelected);
           });
         });
@@ -502,7 +507,6 @@
     }
 
     function loadDsKeys(name) {
-      document.getElementById('ds-search').value = '';
       document.getElementById('ds-select-hint').style.display = 'none';
       document.getElementById('ds-kv-panel').style.display = 'block';
       document.getElementById('ds-kv-title').textContent = name;
@@ -516,6 +520,7 @@
       const empty = document.getElementById('ds-kv-empty');
       if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
       empty.style.display = 'none';
+      entries.sort((a, b) => a.key.localeCompare(b.key, undefined, { sensitivity: 'base' }));
       tbody.innerHTML = entries.map(e => `
         <tr data-key="${esc(e.key)}" data-type="${esc(e.type)}">
           <td>${esc(e.key)}</td>
@@ -538,6 +543,7 @@
             .catch(() => toast('Delete failed'));
         });
       });
+      filterTable('ds-kv-body', 'ds-kv-empty', document.getElementById('ds-search').value);
     }
 
     function dsStartEdit(tr, name) {
@@ -568,14 +574,16 @@
       api('/api/proto').then(names => {
         const ul = document.getElementById('proto-file-list');
         if (!names.length) { ul.innerHTML = '<li class="empty">No proto stores found.</li>'; return; }
+        names.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
         ul.innerHTML = names.map(n =>
-          `<li data-name="${n}"><span class="chip"></span><span class="file-name">${n}</span></li>`
+          `<li data-name="${esc(n)}"><span class="chip"></span><span class="file-name">${esc(n)}</span></li>`
         ).join('');
         ul.querySelectorAll('li').forEach(li => {
           li.addEventListener('click', () => {
             ul.querySelectorAll('li').forEach(x => x.classList.remove('selected'));
             li.classList.add('selected');
             protoSelected = li.dataset.name;
+            document.getElementById('proto-search').value = '';
             loadProtoFields(protoSelected);
           });
         });
@@ -584,7 +592,6 @@
     }
 
     function loadProtoFields(name) {
-      document.getElementById('proto-search').value = '';
       document.getElementById('proto-select-hint').style.display = 'none';
       document.getElementById('proto-kv-panel').style.display = 'block';
       document.getElementById('proto-kv-title').textContent = name;
@@ -598,6 +605,7 @@
       const empty = document.getElementById('proto-kv-empty');
       if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
       empty.style.display = 'none';
+      entries.sort((a, b) => a.key.localeCompare(b.key, undefined, { sensitivity: 'base' }));
       tbody.innerHTML = entries.map(e => `
         <tr data-key="${esc(e.key)}" data-type="${esc(e.type)}">
           <td>${esc(e.key)}</td>
@@ -611,6 +619,7 @@
       tbody.querySelectorAll('.proto-edit-btn').forEach(btn => {
         btn.addEventListener('click', () => protoStartEdit(btn.closest('tr'), name));
       });
+      filterTable('proto-kv-body', 'proto-kv-empty', document.getElementById('proto-search').value);
     }
 
     function protoStartEdit(tr, name) {
@@ -668,7 +677,7 @@
     autoRefreshToggle.addEventListener('change', () => {
       autoRefreshInterval.disabled = !autoRefreshToggle.checked;
       if (autoRefreshToggle.checked) {
-        const ms = Math.max(1000, parseInt(autoRefreshInterval.value) || 3000);
+        const ms = Math.max(1000, parseInt(autoRefreshInterval.value) || 1000);
         autoRefreshTimer = setInterval(refreshCurrentTab, ms);
       } else {
         clearInterval(autoRefreshTimer);
@@ -677,7 +686,7 @@
     });
 
     autoRefreshInterval.addEventListener('change', () => {
-      const ms = Math.max(1000, parseInt(autoRefreshInterval.value) || 3000);
+      const ms = Math.max(1000, parseInt(autoRefreshInterval.value) || 1000);
       autoRefreshInterval.value = ms;
       if (!autoRefreshToggle.checked) return;
       clearInterval(autoRefreshTimer);

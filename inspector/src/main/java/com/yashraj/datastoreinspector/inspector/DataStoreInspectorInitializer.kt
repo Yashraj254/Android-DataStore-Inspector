@@ -13,18 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.yashraj.datastoreinspector.inspector.model
+package com.yashraj.datastoreinspector.inspector
 
-/**
- * A single inspectable field of a Proto DataStore message.
- *
- * @property key Field name shown in the UI and used as the lookup key for updates.
- * @property value Current field value rendered as a string.
- * @property type One of `"String"`, `"Int"`, `"Long"`, `"Float"`, `"Double"`, `"Boolean"`,
- * or `"Enum"`. Drives input validation in the inspector UI.
- */
-data class ProtoEntry(
-    val key: String,
-    val value: String,
-    val type: String,
-)
+import android.content.Context
+import androidx.startup.Initializer
+
+internal class DataStoreInspectorInitializer : Initializer<Unit> {
+
+    override fun create(context: Context) {
+        DataStoreInspector.start(context)
+    }
+
+    override fun dependencies(): List<Class<out Initializer<*>>> = emptyList()
+}

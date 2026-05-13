@@ -13,7 +13,7 @@ datastore = "1.2.1"
 protobuf = "4.34.1"
 jetbrainsKotlinJvm = "2.0.21"
 gson = "2.11.0"
-nanohttpd = "2.3.1"
+startup = "1.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -32,8 +32,8 @@ datastore-proto = { group = "androidx.datastore", name = "datastore", version.re
 protobuf-kotlin-lite = { group = "com.google.protobuf", name = "protobuf-kotlin-lite", version.ref = "protobuf" }
 # Gson
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
-# NanoHTTPD
-nanohttpd = { group = "org.nanohttpd", name = "nanohttpd", version.ref = "nanohttpd" }
+# App Startup
+androidx-startup-runtime = { group = "androidx.startup", name = "startup-runtime", version.ref = "startup" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

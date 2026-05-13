@@ -21,6 +21,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- Remove the DataStoreInspectorInitializer from the sample app to avoid initializing the inspector in the sample app -->
+<!--        <provider-->
+<!--            android:name="androidx.startup.InitializationProvider"-->
+<!--            android:authorities="${applicationId}.androidx-startup"-->
+<!--            android:exported="false"-->
+<!--            tools:node="merge">-->
+<!--            <meta-data-->
+<!--                android:name="com.yashraj.datastoreinspector.inspector.DataStoreInspectorInitializer"-->
+<!--                tools:node="remove" />-->
+<!--        </provider>-->
     </application>
 
 </manifest>

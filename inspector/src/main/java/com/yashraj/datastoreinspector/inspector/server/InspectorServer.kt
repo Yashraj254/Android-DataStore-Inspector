@@ -18,7 +18,8 @@ package com.yashraj.datastoreinspector.inspector.server
 import android.content.Context
 import android.util.Log
 import com.google.gson.Gson
-import com.yashraj.datastoreinspector.inspector.DatastoreInspector
+import com.google.gson.JsonSyntaxException
+import com.yashraj.datastoreinspector.inspector.DataStoreInspector
 import com.yashraj.datastoreinspector.inspector.handler.PreferencesDataStoreHandler
 import com.yashraj.datastoreinspector.inspector.handler.ProtoDataStoreHandler
 import com.yashraj.datastoreinspector.inspector.handler.SharedPreferenceHandler
@@ -27,16 +28,17 @@ import kotlin.jvm.java
 internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(port) {
 
     private val prefsHandler = SharedPreferenceHandler(context)
-    private val dataStoreHandler = PreferencesDataStoreHandler(DatastoreInspector.getDataStores())
-    private val protoHandler = ProtoDataStoreHandler(DatastoreInspector.getProtoDataStores())
+    private val dataStoreHandler = PreferencesDataStoreHandler(DataStoreInspector.getDataStores())
+    private val protoHandler = ProtoDataStoreHandler(DataStoreInspector.getProtoDataStores())
     private val htmlBytes = context.assets.open("inspector.html").use { it.readBytes() }
 
     companion object {
         private const val TAG = "InspectorServer"
         private val gson = Gson()
+        private const val MAX_BODY_BYTES = 1 * 1024 * 1024
     }
 
-    override fun serve(request: Request): Response {
+    override suspend fun serve(request: Request): Response {
         Log.d(TAG, "Request: ${request.method} ${request.uri}")
         val uri = request.uri
         return when {
@@ -87,44 +89,50 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
     }
 
     private fun handleSharedPrefsPut(request: Request, name: String, handler: SharedPreferenceHandler): Response {
-        val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = gson.fromJson(body, PutRequest::class.java)
+        val body = readBody(request) ?: return error400("Missing or oversized body")
+        val req = parseJson(body, PutRequest::class.java) ?: return error400("Invalid JSON body")
         validateValue(req.value, req.type)?.let { return error400("Type mismatch for '${req.key}': $it") }
         handler.update(name, req.key, req.value, req.type)
         return json(emptyMap<String, String>())
     }
 
     private fun handleSharedPrefsDelete(request: Request, name: String, handler: SharedPreferenceHandler): Response {
-        val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = gson.fromJson(body, DeleteRequest::class.java)
+        val body = readBody(request) ?: return error400("Missing or oversized body")
+        val req = parseJson(body, DeleteRequest::class.java) ?: return error400("Invalid JSON body")
         handler.delete(name, req.key)
         return json(emptyMap<String, String>())
     }
 
-    private fun handleDataStorePut(request: Request, name: String): Response {
-        val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = gson.fromJson(body, PutRequest::class.java)
+    private suspend fun handleDataStorePut(request: Request, name: String): Response {
+        val body = readBody(request) ?: return error400("Missing or oversized body")
+        val req = parseJson(body, PutRequest::class.java) ?: return error400("Invalid JSON body")
         validateValue(req.value, req.type)?.let { return error400("Type mismatch for '${req.key}': $it") }
         dataStoreHandler.update(name, req.key, req.value, req.type)
         return json(emptyMap<String, String>())
     }
 
-    private fun handleDataStoreDelete(request: Request, name: String): Response {
-        val body = readBody(request) ?: return respond(Status.BAD_REQUEST, "text/plain", "Missing body")
-        val req = gson.fromJson(body, TypedDeleteRequest::class.java)
+    private suspend fun handleDataStoreDelete(request: Request, name: String): Response {
+        val body = readBody(request) ?: return error400("Missing or oversized body")
+        val req = parseJson(body, TypedDeleteRequest::class.java) ?: return error400("Invalid JSON body")
         dataStoreHandler.delete(name, req.key, req.type)
         return json(emptyMap<String, String>())
     }
 
-    private fun handleProtoPut(request: Request, name: String): Response {
-        val body = readBody(request) ?: return error400("Missing request body")
-        val req = gson.fromJson(body, ProtoUpdateRequest::class.java)
+    private suspend fun handleProtoPut(request: Request, name: String): Response {
+        val body = readBody(request) ?: return error400("Missing or oversized body")
+        val req = parseJson(body, ProtoUpdateRequest::class.java) ?: return error400("Invalid JSON body")
         protoHandler.update(name, req.key, req.value)
         return json(emptyMap<String, String>())
     }
 
+    private fun <T> parseJson(body: String, cls: Class<T>): T? = try {
+        gson.fromJson(body, cls)
+    } catch (e: JsonSyntaxException) {
+        Log.w(TAG, "JSON parse error", e)
+        null
+    }
 
-    // Validate that the provided value can be parsed as the expected type
+
     private fun validateValue(value: String, type: String): String? = when (type) {
         "Int"     -> if (value.toIntOrNull() == null)
             "\"$value\" is not a valid Int" else null
@@ -135,8 +143,9 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
         "Double"  -> if (value.toDoubleOrNull() == null)
             "\"$value\" is not a valid Double" else null
         "Boolean" -> if (value != "true" && value != "false")
-            "\"$value\" is not a valid Boolean — must be \"true\" or \"false\"" else null
-        else      -> null  // String, StringSet, Enum — accept as-is
+            "\"$value\" is not a valid Boolean. Must be \"true\" or \"false\"" else null
+        // String and StringSet values are validated by the handler at write time.
+        else      -> null
     }
 
     private fun error400(message: String): Response =
@@ -145,7 +154,11 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
 
     private fun readBody(request: Request): String? {
         val len = request.headers["content-length"]?.toIntOrNull() ?: return null
-        if (len == 0) return null
+        if (len <= 0) return null
+        if (len > MAX_BODY_BYTES) {
+            Log.w(TAG, "Rejecting body: Content-Length $len exceeds cap $MAX_BODY_BYTES")
+            return null
+        }
         val buf = ByteArray(len)
         var offset = 0
         while (offset < len) {
@@ -153,7 +166,7 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
             if (read == -1) break
             offset += read
         }
-        return String(buf, 0, offset)
+        return String(buf, 0, offset, Charsets.UTF_8)
     }
 
     private fun json(data: Any): Response =

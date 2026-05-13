@@ -68,7 +68,7 @@ Register as many DataStore instances as you need by chaining calls:
 class SampleApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        DatastoreInspector
+        DataStoreInspector
             .registerDataStore("user_preferences", userPreferencesDataStore)
             .registerDataStore("app_settings", appSettingsDataStore)
             .registerProto("user_prefs", userProtoDataStore)
@@ -83,32 +83,44 @@ class SampleApplication : Application() {
 
 ## Open the inspector
 
-### On an emulator or device connected via USB
-
-Run this once to forward the port:
+Forward the port (works over USB or wireless adb):
 
 ```
-adb forward tcp:3000 tcp:3000
+adb forward tcp:5050 tcp:5050
 ```
 
-Then open `http://localhost:3000` in your browser.
-
-### On a physical device over Wi-Fi
-
-Find your device's IP address (`Settings → About → IP address`) and open:
-
-```
-http://<device-ip>:3000
-```
+Then open `http://localhost:5050` in your browser.
 
 ---
 
 ## Custom port
 
-The default port is `3000`. To use a different port, call `start()` manually before any other registration:
+The default port is `5050`. The inspector auto-starts via App Startup before `Application.onCreate()` runs, so the server is already bound to 5050 by the time your code runs. To use a different port, just call `start()` with the port you want — the auto-started server will be stopped and rebound on the requested port:
 
 ```kotlin
-DatastoreInspector.start(this, port = 8080)
+class SampleApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+        DataStoreInspector.start(this, port = 8080)
+        DataStoreInspector.registerDataStore("user_preferences", userPreferencesDataStore)
+    }
+}
+```
+
+If you'd rather skip the brief restart and have the server bind directly to your custom port, disable the auto-start initializer in your `AndroidManifest.xml`:
+
+```xml
+<application>
+    <provider
+        android:name="androidx.startup.InitializationProvider"
+        android:authorities="${applicationId}.androidx-startup"
+        android:exported="false"
+        tools:node="merge">
+        <meta-data
+            android:name="com.yashraj.datastoreinspector.inspector.DataStoreInspectorInitializer"
+            tools:node="remove" />
+    </provider>
+</application>
 ```
 
 ---
@@ -153,7 +165,7 @@ class UserPreferencesProtoMapper : ProtoInspectorMapper<UserPreferences> {
 Pass it when registering:
 
 ```kotlin
-DatastoreInspector.registerProto("user_prefs", userProtoDataStore, UserPreferencesMapper())
+DataStoreInspector.registerProto("user_prefs", userProtoDataStore, UserPreferencesMapper())
 ```
 
 ---

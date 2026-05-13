@@ -28,9 +28,9 @@ internal class SharedPreferenceHandler(private val context: Context) {
     companion object {
         private const val TAG = "SharedPreferenceHandler"
         val gson = Gson()
+        private val SUPPORTED_TYPES = setOf("String", "Int", "Long", "Float", "Boolean", "StringSet")
     }
 
-    // Get list of all SharedPreferences file names (without .xml extension) in the app's shared_prefs directory
     fun listAll(): List<String> {
         val prefsDir = File(context.applicationInfo.dataDir, "shared_prefs")
         if (!prefsDir.exists()) return emptyList()
@@ -42,7 +42,6 @@ internal class SharedPreferenceHandler(private val context: Context) {
             ?: emptyList()
     }
 
-    // Get list of PreferenceEntry, which includes the key, value, and type of each entry
     fun getAllWithTypes(name: String): List<PreferenceEntry> {
         val prefs = context.getSharedPreferences(name, Context.MODE_PRIVATE)
         return prefs.all.map { (key, value) ->
@@ -53,8 +52,13 @@ internal class SharedPreferenceHandler(private val context: Context) {
             )
         }.sortedBy { it.key }
     }
-    // Update a value in SharedPreferences with proper type handling
+
     fun update(name: String, key: String, value: String, type: String) {
+        // SharedPreferences has no Double API; reject other unknown types too.
+        if (type !in SUPPORTED_TYPES) {
+            Log.w(TAG, "Refusing to write $name[$key]: unsupported SharedPreferences type \"$type\"")
+            return
+        }
         context.getSharedPreferences(name, Context.MODE_PRIVATE).edit {
             when (type) {
                 "String" -> putString(key, value)

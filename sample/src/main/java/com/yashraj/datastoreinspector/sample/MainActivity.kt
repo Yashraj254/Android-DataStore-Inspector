@@ -62,12 +62,10 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        // Save default data initially
         saveToSharedPrefs()
         saveToPreferencesDataStore()
         saveToProtoDataStore()
 
-        // Load saved data
         loadFromSharedPrefs()
         observePreferencesDataStore()
         observeProtoDataStore()

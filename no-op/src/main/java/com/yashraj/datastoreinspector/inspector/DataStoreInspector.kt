@@ -21,15 +21,15 @@ import androidx.datastore.preferences.core.Preferences
 import com.yashraj.datastoreinspector.inspector.proto.ProtoInspectorMapper
 
 @Suppress("UNUSED_PARAMETER")
-object DatastoreInspector {
+object DataStoreInspector {
 
-    fun registerDataStore(name: String, dataStore: DataStore<Preferences>): DatastoreInspector = this
+    fun registerDataStore(name: String, dataStore: DataStore<Preferences>): DataStoreInspector = this
 
     fun <T : Any> registerProto(name: String, dataStore: DataStore<T>,
         mapper: ProtoInspectorMapper<T>? = null
-    ): DatastoreInspector = this
+    ): DataStoreInspector = this
 
-    fun start(context: Context, port: Int = 3000) = Unit
+    fun start(context: Context, port: Int = 5050) = Unit
 
     fun stop() = Unit
 }

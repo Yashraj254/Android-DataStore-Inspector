@@ -17,11 +17,13 @@ package com.yashraj.datastoreinspector.inspector.proto
 
 import com.yashraj.datastoreinspector.inspector.model.ProtoEntry
 import java.lang.reflect.Modifier
+import java.util.concurrent.ConcurrentHashMap
 
 internal class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
 
     // Caches filtered methods per class so reflection runs only once per proto type.
-    private val methodCache = mutableMapOf<Class<*>, List<java.lang.reflect.Method>>()
+    // ConcurrentHashMap because request coroutines hit getOrPut concurrently.
+    private val methodCache = ConcurrentHashMap<Class<*>, List<java.lang.reflect.Method>>()
 
     private fun getFieldMethods(clazz: Class<*>) = methodCache.getOrPut(clazz) {
         clazz.methods.filter { method ->
@@ -66,7 +68,7 @@ internal class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
             paramType == Long::class.java -> value.toLong()
             paramType == Float::class.java -> value.toFloat()
             paramType == Double::class.java -> value.toDouble()
-            paramType.isEnum -> paramType.enumConstants?.first { (it as Enum<*>).name == value } ?: return proto
+            paramType.isEnum -> paramType.enumConstants?.firstOrNull { (it as Enum<*>).name == value } ?: return proto
             else -> return proto
         }
         setter.invoke(builder, typedValue)
