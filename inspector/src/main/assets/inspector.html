@@ -141,6 +141,9 @@
         input[type="text"]:focus, select:focus { outline: none; border-color: var(--accent); }
         .inline-edit { display: flex; gap: 4px; align-items: center; }
         .inline-edit input { flex: 1; min-width: 80px; }
+        .bool-opts { display: flex; gap: 20px; margin-bottom: 20px; }
+        .bool-opt { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 14px; }
+        .bool-opt input[type="radio"] { cursor: pointer; accent-color: var(--accent); margin: 0; }
         .layout { display: grid; grid-template-columns: 220px 1fr; gap: 16px; }
         @media (max-width: 600px) { .layout { grid-template-columns: 1fr; } }
         .toast {
@@ -342,32 +345,45 @@
     }
 
     function showEditDialog(key, type, currentVal, onSave) {
+      const isBool = type === 'Boolean';
+      const isTrue = String(currentVal).toLowerCase() === 'true';
+      const field = isBool
+        ? `<div class="bool-opts">
+             <label class="bool-opt"><input type="radio" name="edit-bool" value="true"${isTrue ? ' checked' : ''} /> true</label>
+             <label class="bool-opt"><input type="radio" name="edit-bool" value="false"${isTrue ? '' : ' checked'} /> false</label>
+           </div>`
+        : `<input class="edit-modal-input" type="text" value="${esc(currentVal)}" />`;
       const overlay = document.createElement('div');
       overlay.className = 'modal-overlay';
       overlay.innerHTML = `
         <div class="modal" role="dialog" aria-modal="true">
           <div class="modal-meta">Editing field</div>
           <div class="modal-title" style="color:var(--text)">${esc(key)} ${badge(type)}</div>
-          <input class="edit-modal-input" type="text" value="${esc(currentVal)}" />
+          ${field}
           <div class="modal-actions">
             <button class="btn btn-ghost" id="edit-modal-cancel">Cancel</button>
             <button class="btn btn-primary" id="edit-modal-save">Save</button>
           </div>
         </div>`;
       document.body.appendChild(overlay);
-      const input = overlay.querySelector('.edit-modal-input');
-      input.focus();
-      input.select();
+      const getValue = () => isBool
+        ? overlay.querySelector('input[name="edit-bool"]:checked').value
+        : overlay.querySelector('.edit-modal-input').value;
+      if (!isBool) {
+        const input = overlay.querySelector('.edit-modal-input');
+        input.focus();
+        input.select();
+      }
       const close = () => overlay.remove();
       overlay.querySelector('#edit-modal-cancel').addEventListener('click', close);
       overlay.querySelector('#edit-modal-save').addEventListener('click', () => {
         close();
-        onSave(input.value);
+        onSave(getValue());
       });
       overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
       overlay.addEventListener('keydown', e => {
         if (e.key === 'Escape') close();
-        if (e.key === 'Enter') { close(); onSave(input.value); }
+        if (e.key === 'Enter') { close(); onSave(getValue()); }
       });
     }
 
@@ -394,6 +410,32 @@
       overlay.querySelector('#modal-ok').addEventListener('click', close);
       overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
       overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+    }
+
+    function showConfirmDialog(messageHtml, onConfirm) {
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal" role="alertdialog" aria-modal="true">
+          <div class="modal-icon">🗑️</div>
+          <div class="modal-title">Confirm Delete</div>
+          <div class="modal-msg">${messageHtml}</div>
+          <div class="modal-actions">
+            <button class="btn btn-ghost" id="confirm-cancel">Cancel</button>
+            <button class="btn btn-danger" id="confirm-ok">Delete</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      overlay.querySelector('#confirm-ok').focus();
+      const close = () => overlay.remove();
+      const confirm = () => { close(); onConfirm(); };
+      overlay.querySelector('#confirm-cancel').addEventListener('click', close);
+      overlay.querySelector('#confirm-ok').addEventListener('click', confirm);
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+      overlay.addEventListener('keydown', e => {
+        if (e.key === 'Escape') close();
+        if (e.key === 'Enter') confirm();
+      });
     }
 
     // SHARED PREFS
@@ -452,9 +494,12 @@
       tbody.querySelectorAll('.sp-del-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const tr = btn.closest('tr');
-          api('/api/sharedprefs/' + name, 'DELETE', { key: tr.dataset.key })
-            .then(() => { toast('Deleted'); loadSpKeys(name); })
-            .catch(() => toast('Delete failed'));
+          const key = tr.dataset.key;
+          showConfirmDialog(`Delete key <strong>${esc(key)}</strong> from <strong>${esc(name)}</strong>?`, () =>
+            api('/api/sharedprefs/' + name, 'DELETE', { key })
+              .then(() => { toast('Deleted'); loadSpKeys(name); })
+              .catch(() => toast('Delete failed'))
+          );
         });
       });
       filterTable('sp-kv-body', 'sp-kv-empty', document.getElementById('sp-search').value);
@@ -538,9 +583,12 @@
       tbody.querySelectorAll('.ds-del-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const tr = btn.closest('tr');
-          api('/api/datastore/' + name, 'DELETE', { key: tr.dataset.key, type: tr.dataset.type })
-            .then(() => { toast('Deleted'); loadDsKeys(name); })
-            .catch(() => toast('Delete failed'));
+          const key = tr.dataset.key, type = tr.dataset.type;
+          showConfirmDialog(`Delete key <strong>${esc(key)}</strong> from <strong>${esc(name)}</strong>?`, () =>
+            api('/api/datastore/' + name, 'DELETE', { key, type })
+              .then(() => { toast('Deleted'); loadDsKeys(name); })
+              .catch(() => toast('Delete failed'))
+          );
         });
       });
       filterTable('ds-kv-body', 'ds-kv-empty', document.getElementById('ds-search').value);
