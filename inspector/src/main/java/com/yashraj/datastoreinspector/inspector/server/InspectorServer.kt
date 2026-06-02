@@ -39,7 +39,6 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
     }
 
     override suspend fun serve(request: Request): Response {
-        Log.d(TAG, "Request: ${request.method} ${request.uri}")
         val uri = request.uri
         return when {
             uri == "/" && request.method == "GET" -> Response(Status.OK, "text/html", htmlBytes)

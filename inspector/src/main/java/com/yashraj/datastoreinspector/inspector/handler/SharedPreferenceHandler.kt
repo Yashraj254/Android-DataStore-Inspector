@@ -72,17 +72,14 @@ internal class SharedPreferenceHandler(private val context: Context) {
                 }
             }
         }
-        Log.d(TAG, "Writing SharedPrefs: $name[$key] = $value (type: $type)")
     }
 
     fun delete(name: String, key: String) {
         context.getSharedPreferences(name, Context.MODE_PRIVATE).edit { remove(key) }
-        Log.d(TAG, "Deleted SharedPrefs key: $name[$key]")
     }
 
     fun clear(name: String) {
         context.getSharedPreferences(name, Context.MODE_PRIVATE).edit { clear() }
-        Log.d(TAG, "Cleared SharedPrefs: $name")
     }
 }
 
