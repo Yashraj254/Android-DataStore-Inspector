@@ -12,4 +12,27 @@ message UserPreferences {
   float rating = 6;
   int64 last_login = 7;
   double account_balance = 8;
+
+  // Composite fields exercised by the reflective mapper / tree editor:
+  Tier tier = 9;                 // enum
+  Address address = 10;          // nested message
+  repeated Badge badges = 11;    // repeated message
+}
+
+enum Tier {
+  FREE = 0;
+  SILVER = 1;
+  GOLD = 2;
+}
+
+message Address {
+  string city = 1;
+  string country = 2;
+  int32 zip = 3;
+}
+
+message Badge {
+  string name = 1;
+  int32 level = 2;
+  bool featured = 3;
 }
