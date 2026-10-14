@@ -16,8 +16,20 @@
 package com.yashraj.datastoreinspector.inspector.proto
 
 import androidx.datastore.core.DataStore
+import com.yashraj.datastoreinspector.inspector.model.ProtoEntry
+import kotlinx.coroutines.flow.first
 
+/**
+ * Pairs a Proto DataStore with the mapper for its message type. The read/write logic lives here,
+ * where [T] is known, so callers holding a `ProtoDataStoreHolder<*>` need no unchecked cast.
+ */
 internal data class ProtoDataStoreHolder<T>(
     val dataStore: DataStore<T>,
     val mapper: ProtoInspectorMapper<T>
-)
+) {
+    suspend fun readEntries(): List<ProtoEntry> = mapper.toEntries(dataStore.data.first())
+
+    suspend fun updateField(key: String, value: String) {
+        dataStore.updateData { old -> mapper.updateField(old, key, value) }
+    }
+}

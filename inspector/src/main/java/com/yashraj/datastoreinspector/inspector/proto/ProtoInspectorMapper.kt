@@ -37,8 +37,9 @@ interface ProtoInspectorMapper<T> {
     /**
      * Returns a new instance of [proto] with the field named [key] set to [value].
      *
-     * Implementations should return [proto] unchanged when [key] is unknown or when
-     * [value] cannot be parsed for that field.
+     * Implementations should throw [IllegalArgumentException] when [key] is unknown or when
+     * [value] cannot be parsed for that field. The inspector reports the exception's message
+     * to the user as a failed update and leaves the stored value unchanged.
      */
     fun updateField(proto: T, key: String, value: String): T
 }

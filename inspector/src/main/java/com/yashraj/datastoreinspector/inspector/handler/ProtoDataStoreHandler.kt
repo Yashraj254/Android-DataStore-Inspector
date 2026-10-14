@@ -17,22 +17,15 @@ package com.yashraj.datastoreinspector.inspector.handler
 
 import com.yashraj.datastoreinspector.inspector.model.ProtoEntry
 import com.yashraj.datastoreinspector.inspector.proto.ProtoDataStoreHolder
-import kotlinx.coroutines.flow.first
 
 internal class ProtoDataStoreHandler(private val protoDataStores: Map<String, ProtoDataStoreHolder<*>>) {
 
     fun listProtoStores(): List<String> = protoDataStores.keys.toList()
 
-    @Suppress("UNCHECKED_CAST")
-    suspend fun getAll(name: String): List<ProtoEntry> {
-        val holder = protoDataStores[name] as? ProtoDataStoreHolder<Any> ?: return emptyList()
-        val proto = holder.dataStore.data.first()
-        return holder.mapper.toEntries(proto)
-    }
+    suspend fun getAll(name: String): List<ProtoEntry> =
+        protoDataStores[name]?.readEntries() ?: emptyList()
 
-    @Suppress("UNCHECKED_CAST")
     suspend fun update(name: String, key: String, value: String) {
-        val holder = protoDataStores[name] as? ProtoDataStoreHolder<Any> ?: return
-        holder.dataStore.updateData { old -> holder.mapper.updateField(old, key, value) }
+        protoDataStores[name]?.updateField(key, value)
     }
 }
