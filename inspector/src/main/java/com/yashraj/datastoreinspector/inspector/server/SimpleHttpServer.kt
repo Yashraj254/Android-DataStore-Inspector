@@ -29,6 +29,7 @@ import java.net.InetAddress
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
+import java.net.URLDecoder
 
 
 internal abstract class SimpleHttpServer(private val port: Int) {
@@ -117,7 +118,12 @@ internal abstract class SimpleHttpServer(private val port: Int) {
                 if (parts.size < 2) return
 
                 val method = parts[0]
-                val uri = parts[1].substringBefore('?')
+                val uri = try {
+                    decodePath(parts[1].substringBefore('?'))
+                } catch (e: IllegalArgumentException) {
+                    writeResponse(output, Response(Status.BAD_REQUEST, "text/plain", "Malformed URL"))
+                    return
+                }
 
                 val headers = mutableMapOf<String, String>()
                 while (true) {
@@ -179,3 +185,11 @@ internal abstract class SimpleHttpServer(private val port: Int) {
         private const val TAG = "SimpleHttpServer"
     }
 }
+
+/**
+ * Decodes `%XX` escapes in a URL path, so store names containing spaces, `#`, `?` or non-ASCII
+ * characters (sent by the page via `encodeURIComponent`) reach the handlers verbatim. Unlike
+ * form decoding, `+` is kept literal. Throws [IllegalArgumentException] on a malformed escape.
+ */
+internal fun decodePath(rawPath: String): String =
+    URLDecoder.decode(rawPath.replace("+", "%2B"), "UTF-8")

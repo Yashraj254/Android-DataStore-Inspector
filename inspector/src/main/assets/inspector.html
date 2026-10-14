@@ -498,7 +498,7 @@
       document.getElementById('sp-select-hint').style.display = 'none';
       document.getElementById('sp-kv-panel').style.display = 'block';
       document.getElementById('sp-kv-title').textContent = name;
-      api('/api/sharedprefs/' + name).then(entries => {
+      api('/api/sharedprefs/' + encodeURIComponent(name)).then(entries => {
         renderSpTable(entries, name);
       }).catch(() => toast('Failed to load keys'));
     }
@@ -528,7 +528,7 @@
           const tr = btn.closest('tr');
           const key = tr.dataset.key;
           showConfirmDialog(`Delete key <strong>${esc(key)}</strong> from <strong>${esc(name)}</strong>?`, () =>
-            api('/api/sharedprefs/' + name, 'DELETE', { key })
+            api('/api/sharedprefs/' + encodeURIComponent(name), 'DELETE', { key })
               .then(() => { toast('Deleted'); loadSpKeys(name); })
               .catch(() => toast('Delete failed'))
           );
@@ -542,7 +542,7 @@
       const type = tr.dataset.type;
       const currentVal = tr.querySelector('.val-cell').textContent;
       showEditDialog(key, type, currentVal, val =>
-        api('/api/sharedprefs/' + name, 'PUT', { key, value: val, type })
+        api('/api/sharedprefs/' + encodeURIComponent(name), 'PUT', { key, value: val, type })
           .then(() => { toast('Saved'); loadSpKeys(name); })
           .catch(err => showErrorDialog(key, type, val, err.message))
       );
@@ -551,7 +551,7 @@
     document.getElementById('sp-refresh-btn').addEventListener('click', () => spSelected && loadSpKeys(spSelected));
     document.getElementById('sp-clear-btn').addEventListener('click', () => {
       if (!spSelected || !confirm('Clear all keys from "' + spSelected + '"?')) return;
-      api('/api/clear/sharedprefs/' + spSelected, 'POST')
+      api('/api/clear/sharedprefs/' + encodeURIComponent(spSelected), 'POST')
         .then(() => { toast('Cleared'); loadSpKeys(spSelected); })
         .catch(() => toast('Clear failed'));
     });
@@ -587,7 +587,7 @@
       document.getElementById('ds-select-hint').style.display = 'none';
       document.getElementById('ds-kv-panel').style.display = 'block';
       document.getElementById('ds-kv-title').textContent = name;
-      api('/api/datastore/' + name).then(entries => {
+      api('/api/datastore/' + encodeURIComponent(name)).then(entries => {
         renderDsTable(entries, name);
       }).catch(() => toast('Failed to load keys'));
     }
@@ -617,7 +617,7 @@
           const tr = btn.closest('tr');
           const key = tr.dataset.key, type = tr.dataset.type;
           showConfirmDialog(`Delete key <strong>${esc(key)}</strong> from <strong>${esc(name)}</strong>?`, () =>
-            api('/api/datastore/' + name, 'DELETE', { key, type })
+            api('/api/datastore/' + encodeURIComponent(name), 'DELETE', { key, type })
               .then(() => { toast('Deleted'); loadDsKeys(name); })
               .catch(() => toast('Delete failed'))
           );
@@ -631,7 +631,7 @@
       const type = tr.dataset.type;
       const currentVal = tr.querySelector('.val-cell').textContent;
       showEditDialog(key, type, currentVal, val =>
-        api('/api/datastore/' + name, 'PUT', { key, value: val, type })
+        api('/api/datastore/' + encodeURIComponent(name), 'PUT', { key, value: val, type })
           .then(() => { toast('Saved'); loadDsKeys(name); })
           .catch(err => showErrorDialog(key, type, val, err.message))
       );
@@ -640,7 +640,7 @@
     document.getElementById('ds-refresh-btn').addEventListener('click', () => dsSelected && loadDsKeys(dsSelected));
     document.getElementById('ds-clear-btn').addEventListener('click', () => {
       if (!dsSelected || !confirm('Clear all keys from "' + dsSelected + '"?')) return;
-      api('/api/clear/datastore/' + dsSelected, 'POST')
+      api('/api/clear/datastore/' + encodeURIComponent(dsSelected), 'POST')
         .then(() => { toast('Cleared'); loadDsKeys(dsSelected); })
         .catch(() => toast('Clear failed'));
     });
@@ -676,7 +676,7 @@
       document.getElementById('proto-select-hint').style.display = 'none';
       document.getElementById('proto-kv-panel').style.display = 'block';
       document.getElementById('proto-kv-title').textContent = name;
-      api('/api/proto/' + name).then(entries => {
+      api('/api/proto/' + encodeURIComponent(name)).then(entries => {
         renderProtoTable(entries, name);
       }).catch(() => toast('Failed to load fields'));
     }
@@ -716,7 +716,7 @@
       const key = tr.dataset.key;
       const type = tr.dataset.type;
       const save = val =>
-        api('/api/proto/' + name, 'PUT', { key, value: val })
+        api('/api/proto/' + encodeURIComponent(name), 'PUT', { key, value: val })
           .then(() => { toast('Saved'); loadProtoFields(name); })
           .catch(err => showErrorDialog(key, type, val, err.message));
       if (type === 'Message' || type === 'List' || type === 'Map') {
