@@ -120,8 +120,12 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
     private suspend fun handleProtoPut(request: Request, name: String): Response {
         val body = readBody(request) ?: return error400("Missing or oversized body")
         val req = parseJson(body, ProtoUpdateRequest::class.java) ?: return error400("Invalid JSON body")
-        protoHandler.update(name, req.key, req.value)
-        return json(emptyMap<String, String>())
+        return try {
+            protoHandler.update(name, req.key, req.value)
+            json(emptyMap<String, String>())
+        } catch (e: IllegalArgumentException) {
+            error400("Update failed for '${req.key}': ${e.message}")
+        }
     }
 
     private fun <T> parseJson(body: String, cls: Class<T>): T? = try {

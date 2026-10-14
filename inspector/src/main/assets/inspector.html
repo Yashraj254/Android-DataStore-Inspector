@@ -121,6 +121,8 @@
         .badge-Boolean { background: var(--badge-boolean); }
         .badge-StringSet { background: var(--badge-stringset); }
         .badge-Enum { background: var(--badge-enum); }
+        .badge-Message, .badge-Map { background: var(--badge-stringset); }
+        .badge-List { background: var(--badge-enum); }
         .btn {
           cursor: pointer; border: none; border-radius: 5px; padding: 5px 10px;
           font-size: 12px; font-weight: 500; transition: background .15s;
@@ -186,6 +188,36 @@
           font-size: 14px; margin-bottom: 20px;
         }
         .edit-modal-input:focus { outline: none; border-color: var(--accent); }
+
+        /* Proto composite (Message/List/Map) rendering */
+        .json-preview {
+          font-family: ui-monospace, monospace; font-size: 12px; color: var(--text-muted);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          max-width: 100%; display: inline-block; vertical-align: bottom;
+        }
+        .modal.modal-wide { max-width: 640px; }
+        .tree-host {
+          max-height: 55vh; overflow: auto; margin-bottom: 18px; text-align: left;
+          border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+          background: var(--surface2); font-family: ui-monospace, monospace; font-size: 13px;
+        }
+        .tree-children { margin-left: 16px; border-left: 1px dashed var(--border); padding-left: 10px; }
+        .tree-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+        .tree-key { color: var(--text-muted); flex-shrink: 0; }
+        .tree-key b { color: var(--text); font-weight: 600; }
+        .tree-row input[type="text"], .tree-row input[type="number"] {
+          flex: 1; min-width: 60px; padding: 3px 7px; font-size: 13px;
+          font-family: ui-monospace, monospace;
+        }
+        .tree-row select { padding: 3px 7px; font-size: 13px; }
+        .tree-mini {
+          cursor: pointer; border: none; border-radius: 4px; padding: 2px 8px; font-size: 12px;
+          background: var(--surface); color: var(--text); border: 1px solid var(--border);
+        }
+        .tree-mini:hover { background: var(--border); }
+        .tree-mini.danger { color: var(--danger); }
+        .tree-mini.add { color: var(--accent); }
+        .tree-note { color: var(--text-muted); font-style: italic; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -617,6 +649,7 @@
 
     // PROTO
     let protoSelected = null;
+    let protoEntries = [];
 
     function loadProtoFiles() {
       api('/api/proto').then(names => {
@@ -649,20 +682,26 @@
     }
 
     function renderProtoTable(entries, name) {
+      protoEntries = entries;
       const tbody = document.getElementById('proto-kv-body');
       const empty = document.getElementById('proto-kv-empty');
       if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
       empty.style.display = 'none';
       entries.sort((a, b) => a.key.localeCompare(b.key, undefined, { sensitivity: 'base' }));
-      tbody.innerHTML = entries.map(e => `
+      tbody.innerHTML = entries.map(e => {
+        const composite = e.type === 'Message' || e.type === 'List' || e.type === 'Map';
+        const valCell = composite
+          ? `<span class="json-preview">${esc(jsonPreview(e.value))}</span>`
+          : esc(e.value);
+        const action = `<button class="btn btn-ghost proto-edit-btn">Edit</button>`;
+        return `
         <tr data-key="${esc(e.key)}" data-type="${esc(e.type)}">
           <td>${esc(e.key)}</td>
-          <td class="val-cell">${esc(e.value)}</td>
+          <td class="val-cell">${valCell}</td>
           <td>${badge(e.type)}</td>
-          <td class="actions">
-            <button class="btn btn-ghost proto-edit-btn">Edit</button>
-          </td>
-        </tr>`).join('');
+          <td class="actions">${action}</td>
+        </tr>`;
+      }).join('');
 
       tbody.querySelectorAll('.proto-edit-btn').forEach(btn => {
         btn.addEventListener('click', () => protoStartEdit(btn.closest('tr'), name));
@@ -670,15 +709,157 @@
       filterTable('proto-kv-body', 'proto-kv-empty', document.getElementById('proto-search').value);
     }
 
+    function jsonPreview(s) { return String(s).replace(/\s+/g, ' ').slice(0, 120); }
+    function safeParse(s) { try { return JSON.parse(s); } catch { return null; } }
+
     function protoStartEdit(tr, name) {
       const key = tr.dataset.key;
       const type = tr.dataset.type;
-      const currentVal = tr.querySelector('.val-cell').textContent;
-      showEditDialog(key, type, currentVal, val =>
+      const save = val =>
         api('/api/proto/' + name, 'PUT', { key, value: val })
           .then(() => { toast('Saved'); loadProtoFields(name); })
-          .catch(err => showErrorDialog(key, type, val, err.message))
-      );
+          .catch(err => showErrorDialog(key, type, val, err.message));
+      if (type === 'Message' || type === 'List' || type === 'Map') {
+        const entry = protoEntries.find(e => e.key === key) || {};
+        showProtoTreeEditor(key, type, entry.value || (type === 'List' ? '[]' : '{}'), entry.template, save);
+      } else {
+        showEditDialog(key, type, tr.querySelector('.val-cell').textContent, save);
+      }
+    }
+
+    // Firestore-style tree editor for Message / List / Map proto fields. Edits a deep-cloned JSON value
+    // in place and re-serialises it on Save; the server validates and rebuilds the proto message.
+    function showProtoTreeEditor(key, type, jsonStr, templateStr, onSave) {
+      let root = safeParse(jsonStr);
+      if (root === null) root = (type === 'List') ? [] : {};
+      const rootTemplate = templateStr ? safeParse(templateStr) : null;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay';
+      overlay.innerHTML = `
+        <div class="modal modal-wide" role="dialog" aria-modal="true">
+          <div class="modal-meta">Editing field</div>
+          <div class="modal-title" style="color:var(--text)">${esc(key)} ${badge(type)}</div>
+          <div class="tree-host" id="tree-host"></div>
+          <div class="modal-actions">
+            <button class="btn btn-ghost" id="tree-cancel">Cancel</button>
+            <button class="btn btn-primary" id="tree-save">Save</button>
+          </div>
+        </div>`;
+      document.body.appendChild(overlay);
+      const host = overlay.querySelector('#tree-host');
+
+      const el = (tag, cls, html) => {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (html != null) e.innerHTML = html;
+        return e;
+      };
+      const keyLabel = t => `<span class="tree-key"><b>${esc(t)}</b></span>`;
+      const deepClone = v => JSON.parse(JSON.stringify(v));
+      // Nulls are unset oneof members; keep them null so the server leaves them unset.
+      const blankClone = v => {
+        if (v === null) return null;
+        if (Array.isArray(v)) return [];
+        if (v !== null && typeof v === 'object') { const o = {}; for (const k in v) o[k] = blankClone(v[k]); return o; }
+        if (typeof v === 'number') return 0;
+        if (typeof v === 'boolean') return false;
+        return '';
+      };
+
+      function leafInput(obj, k) {
+        const v = obj[k];
+        if (typeof v === 'boolean') {
+          const sel = el('select');
+          sel.innerHTML = `<option value="true"${v ? ' selected' : ''}>true</option>` +
+                          `<option value="false"${!v ? ' selected' : ''}>false</option>`;
+          sel.addEventListener('change', () => { obj[k] = sel.value === 'true'; });
+          return sel;
+        }
+        const inp = el('input');
+        if (typeof v === 'number') {
+          inp.type = 'number'; inp.value = v;
+          inp.addEventListener('input', () => { const n = inp.value.trim(); obj[k] = n === '' ? 0 : Number(n); });
+        } else {
+          inp.type = 'text'; inp.value = v == null ? '' : String(v);
+          inp.addEventListener('input', () => { obj[k] = inp.value; });
+        }
+        return inp;
+      }
+
+      function buildField(obj, k, label) {
+        const v = obj[k];
+        if (Array.isArray(v)) return buildArray(obj, k, label, null);
+        if (v !== null && typeof v === 'object') {
+          const wrap = el('div', null);
+          if (label != null) wrap.appendChild(el('div', 'tree-row', keyLabel(label)));
+          const children = el('div', 'tree-children');
+          Object.keys(v).forEach(ck => children.appendChild(buildField(v, ck, ck)));
+          wrap.appendChild(children);
+          return wrap;
+        }
+        const row = el('div', 'tree-row', keyLabel(label));
+        row.appendChild(leafInput(obj, k));
+        return row;
+      }
+
+      function buildArray(parent, k, label, tpl) {
+        const arr = parent[k];
+        const wrap = document.createElement('div');
+        const header = el('div', 'tree-row',
+          keyLabel(label || '') + `<span class="tree-note">[${arr.length}]</span>`);
+        const addBtn = el('button', 'tree-mini add', '➕ Add');
+        addBtn.addEventListener('click', () => {
+          const blank = tpl != null ? deepClone(tpl) : (arr.length ? blankClone(arr[0]) : null);
+          if (blank === null) { toast('Cannot infer item shape for an empty list'); return; }
+          arr.push(blank); rerender();
+        });
+        header.appendChild(addBtn);
+        wrap.appendChild(header);
+        const children = el('div', 'tree-children');
+        arr.forEach((item, i) => {
+          const itemWrap = document.createElement('div');
+          const ihead = el('div', 'tree-row', keyLabel(`[${i}]`));
+          const rm = el('button', 'tree-mini danger', '🗑');
+          rm.addEventListener('click', () => { arr.splice(i, 1); rerender(); });
+          ihead.appendChild(rm);
+          itemWrap.appendChild(ihead);
+          if (Array.isArray(item)) {
+            itemWrap.appendChild(buildArray(arr, i, '', null));
+          } else if (item !== null && typeof item === 'object') {
+            const ic = el('div', 'tree-children');
+            Object.keys(item).forEach(ck => ic.appendChild(buildField(item, ck, ck)));
+            itemWrap.appendChild(ic);
+          } else {
+            const lr = el('div', 'tree-row tree-children');
+            lr.appendChild(leafInput(arr, i));
+            itemWrap.appendChild(lr);
+          }
+          children.appendChild(itemWrap);
+        });
+        wrap.appendChild(children);
+        return wrap;
+      }
+
+      function rerender() {
+        host.innerHTML = '';
+        if (Array.isArray(root)) {
+          host.appendChild(buildArray({ root }, 'root', '', rootTemplate));
+        } else if (root !== null && typeof root === 'object') {
+          const children = el('div', null);
+          Object.keys(root).forEach(ck => children.appendChild(buildField(root, ck, ck)));
+          host.appendChild(children);
+        } else {
+          host.appendChild(el('div', 'tree-note', 'Empty.'));
+        }
+      }
+      rerender();
+
+      const close = () => overlay.remove();
+      overlay.querySelector('#tree-cancel').addEventListener('click', close);
+      overlay.querySelector('#tree-save').addEventListener('click', () => { close(); onSave(JSON.stringify(root)); });
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+      overlay.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
     }
 
     document.getElementById('proto-refresh-btn').addEventListener('click', () => protoSelected && loadProtoFields(protoSelected));

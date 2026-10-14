@@ -129,6 +129,18 @@ If you'd rather skip the brief restart and have the server bind directly to your
 
 Proto DataStore fields are read using **reflection by default** — no extra setup needed if your proto message follows standard getter conventions.
 
+Reflection works descriptor-free (compatible with the `protobuf-javalite` runtime that Proto DataStore generates) and covers the full message shape:
+
+- **Scalars and enums** are shown as flat, individually editable values.
+- **Nested messages** are shown as a `Message` field and rendered as an editable tree.
+- **`repeated` fields** are shown as a `List`; you can edit, **add, and remove** elements from the tree editor.
+- **`map` fields** are shown as a `Map`; existing entries' values can be edited from the tree editor (adding or removing keys is not supported yet).
+- **`oneof` fields** inside nested messages: members that are not set show as empty (`null`), so saving the tree leaves the oneof on the member that is set. Filling in more than one member is rejected with an error.
+
+> **Current limitations:** `bytes` fields are skipped, map keys cannot be added or removed, and `int64`
+> values larger than 2^53 may lose precision in the JSON editor. Provide a custom
+> `ProtoInspectorMapper` if you need to handle these explicitly.
+
 For full control over field names and type conversions, provide a custom `ProtoInspectorMapper`:
 
 ```kotlin

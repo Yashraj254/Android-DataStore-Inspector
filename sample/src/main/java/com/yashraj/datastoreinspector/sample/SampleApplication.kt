@@ -10,10 +10,12 @@ class SampleApplication : Application() {
         // Auto-started by App Startup. Call start() manually only to override the port.
 //      DataStoreInspector.start(this, 5051)
         DataStoreInspector.registerDataStore("user_preferences", prefsDataStore)
-            // Pick one registerProto() call. The explicit mapper is preferred when field
-            // names matter; the no-mapper form uses reflection to discover them.
-            .registerProto("user_prefs", protoDataStore, UserPreferencesProtoMapper())
-        //  .registerProto("user_prefs", protoDataStore)
+            // Pick one registerProto() call. The no-mapper form uses reflection to discover
+            // every field — including nested messages, repeated fields and enums — and is what
+            // most apps want. Provide an explicit mapper only when you need to control which
+            // fields are exposed or how their values are parsed.
+            .registerProto("user_prefs", protoDataStore)
+        //  .registerProto("user_prefs", protoDataStore, UserPreferencesProtoMapper())
     }
 
 }

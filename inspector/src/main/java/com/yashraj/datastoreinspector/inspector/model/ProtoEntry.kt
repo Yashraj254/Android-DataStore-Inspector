@@ -19,12 +19,18 @@ package com.yashraj.datastoreinspector.inspector.model
  * A single inspectable field of a Proto DataStore message.
  *
  * @property key Field name shown in the UI and used as the lookup key for updates.
- * @property value Current field value rendered as a string.
+ * @property value Current field value rendered as a string. For scalar fields this is the plain
+ * value; for `"Message"`, `"List"`, and `"Map"` fields it is a JSON document describing the
+ * nested structure.
  * @property type One of `"String"`, `"Int"`, `"Long"`, `"Float"`, `"Double"`, `"Boolean"`,
- * or `"Enum"`. Drives input validation in the inspector UI.
+ * `"Enum"` (scalars), or `"Message"`, `"List"`, `"Map"` (composite fields rendered as JSON).
+ * Drives input validation and rendering in the inspector UI.
+ * @property template For `"List"` fields only, a JSON document for a fresh default element so the
+ * UI can render a blank "add item" form even when the list is currently empty. Null otherwise.
  */
 data class ProtoEntry(
     val key: String,
     val value: String,
     val type: String,
+    val template: String? = null,
 )
