@@ -156,6 +156,23 @@ class ReflectiveProtoMapperTest {
     }
 
     @Test
+    fun invalidEnumErrorListsOnlySettableValues() {
+        val e = assertThrows(IllegalArgumentException::class.java) {
+            mapper.updateField(sample(), "level", "PLATINUM")
+        }
+        assertEquals("\"PLATINUM\" is not a valid Level (one of: BRONZE, SILVER, GOLD)", e.message)
+    }
+
+    @Test
+    fun rejectsUnrecognizedEnumWithClearMessage() {
+        // UNRECOGNIZED is generated for unknown wire values; protobuf refuses to set it.
+        val e = assertThrows(IllegalArgumentException::class.java) {
+            mapper.updateField(sample(), "level", "UNRECOGNIZED")
+        }
+        assertEquals("\"UNRECOGNIZED\" is not a valid Level (one of: BRONZE, SILVER, GOLD)", e.message)
+    }
+
+    @Test
     fun rejectsMalformedJson() {
         assertThrows(IllegalArgumentException::class.java) {
             mapper.updateField(sample(), "rank", "{not valid json")

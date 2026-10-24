@@ -346,8 +346,10 @@ internal class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
 
     private fun enumValue(target: Class<*>, v: Any?): Any {
         val name = v?.toString() ?: err("missing enum value")
-        return target.enumConstants?.firstOrNull { (it as Enum<*>).name == name }
-            ?: err("\"$name\" is not a valid ${target.simpleName} (one of: ${target.enumConstants?.joinToString { (it as Enum<*>).name }})")
+        // UNRECOGNIZED stands for unknown wire values; protobuf refuses to set it.
+        val settable = target.enumConstants.orEmpty().filter { (it as Enum<*>).name != UNRECOGNIZED }
+        return settable.firstOrNull { (it as Enum<*>).name == name }
+            ?: err("\"$name\" is not a valid ${target.simpleName} (one of: ${settable.joinToString { (it as Enum<*>).name }})")
     }
 
     private fun templateFor(elem: Class<*>): Any? = when {
@@ -417,6 +419,7 @@ internal class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
 
     private companion object {
         private val gson = Gson()
+        private const val UNRECOGNIZED = "UNRECOGNIZED"
 
         /** Compares a JSON key with a oneof case constant name: `a_b_c` and `A_B_C` both -> `abc`. */
         private fun normalize(name: String): String = name.replace("_", "").lowercase()

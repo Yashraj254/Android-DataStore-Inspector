@@ -89,13 +89,15 @@ Forward the port (works over USB or wireless adb):
 adb forward tcp:5050 tcp:5050
 ```
 
-Then open `http://localhost:5050` in your browser.
+Then open `http://localhost:5050` in your browser. The page header shows the name and package of the app you are connected to.
+
+> **Several debuggable apps with the inspector?** Each one takes the first free port from `5050` to `5059`. A toast and logcat (tag `DataStoreInspector`) show the app's name, port and the matching `adb forward` command. If a port you pass to `start()` is in use, the inspector keeps running on its current port.
 
 ---
 
 ## Custom port
 
-The default port is `5050`. The inspector auto-starts via App Startup before `Application.onCreate()` runs, so the server is already bound to 5050 by the time your code runs. To use a different port, just call `start()` with the port you want — the auto-started server will be stopped and rebound on the requested port:
+The default port is `5050` (or the next free one up to `5059`). The inspector auto-starts via App Startup before `Application.onCreate()` runs, so the server is already running by the time your code runs. A port you pass explicitly is used as-is, with no fallback. To use a different port, just call `start()` with the port you want — the auto-started server will be stopped and rebound on the requested port:
 
 ```kotlin
 class SampleApplication : Application() {
@@ -135,7 +137,7 @@ Reflection works descriptor-free (compatible with the `protobuf-javalite` runtim
 - **Nested messages** are shown as a `Message` field and rendered as an editable tree.
 - **`repeated` fields** are shown as a `List`; you can edit, **add, and remove** elements from the tree editor.
 - **`map` fields** are shown as a `Map`; existing entries' values can be edited from the tree editor (adding or removing keys is not supported yet).
-- **`oneof` fields** inside nested messages: members that are not set show as empty (`null`), so saving the tree leaves the oneof on the member that is set. Filling in more than one member is rejected with an error.
+- **`oneof` fields** inside nested messages: only the member that is set appears in the tree editor, so saving it never switches the oneof to another member. To switch members, edit the field from a custom `ProtoInspectorMapper` or the API (sending two members is rejected).
 
 > **Current limitations:** `bytes` fields are skipped, map keys cannot be added or removed, and `int64`
 > values larger than 2^53 may lose precision in the JSON editor. Provide a custom

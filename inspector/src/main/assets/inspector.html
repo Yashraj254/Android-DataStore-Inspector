@@ -66,6 +66,7 @@
           position: sticky; top: 0; z-index: 10;
         }
         header h1 { font-size: 18px; font-weight: 700; letter-spacing: .5px; }
+        header .app-id { display: block; font-size: 12px; font-weight: 400; color: var(--text-muted); font-family: monospace; }
         .theme-btn {
           cursor: pointer; background: var(--surface2); border: 1px solid var(--border);
           color: var(--text); padding: 6px 12px; border-radius: 6px; font-size: 13px;
@@ -223,7 +224,7 @@
 <body>
 
 <header>
-    <h1>DataStore Inspector</h1>
+    <h1>DataStore Inspector <span class="app-id" id="app-id"></span></h1>
     <div class="auto-refresh">
         <input type="checkbox" id="autoRefreshToggle" />
         <label for="autoRefreshToggle">Auto-refresh every</label>
@@ -558,6 +559,13 @@
 
 
     loadSpFiles();
+
+    // Show which app this server belongs to: several debuggable apps can run an inspector at once.
+    api('/api/info').then(info => {
+      document.getElementById('app-id').textContent =
+        info.appName + ' \u00b7 ' + info.packageName + ' \u00b7 port ' + info.port;
+      document.title = 'DataStore Inspector \u00b7 ' + info.appName;
+    }).catch(() => {});
 
     // DATASTORE
     let dsSelected = null;
