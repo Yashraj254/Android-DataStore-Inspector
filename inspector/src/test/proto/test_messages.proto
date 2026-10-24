@@ -70,3 +70,13 @@ message Envelope {
   Choice choice = 1;      // nested message containing a oneof
   Counters counters = 2;  // nested message containing a (read-only) map
 }
+
+// Floats that JSON cannot represent as numbers (NaN, +/-Infinity), nested and repeated.
+message Measurements {
+  repeated float samples = 1;
+  Reading reading = 2;
+}
+
+message Reading {
+  double value = 1;
+}

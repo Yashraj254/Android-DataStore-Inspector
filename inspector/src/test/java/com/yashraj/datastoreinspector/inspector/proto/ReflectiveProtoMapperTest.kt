@@ -8,6 +8,8 @@ import com.yashraj.datastoreinspector.inspector.testproto.Envelope
 import com.yashraj.datastoreinspector.inspector.testproto.Collisions
 import com.yashraj.datastoreinspector.inspector.testproto.Counters
 import com.yashraj.datastoreinspector.inspector.testproto.Level
+import com.yashraj.datastoreinspector.inspector.testproto.Measurements
+import com.yashraj.datastoreinspector.inspector.testproto.Reading
 import com.yashraj.datastoreinspector.inspector.testproto.Rank
 import com.yashraj.datastoreinspector.inspector.testproto.Reward
 import org.junit.Assert.assertEquals
@@ -280,5 +282,33 @@ class ReflectiveProtoMapperTest {
             ReflectiveProtoMapper<Counters>()
                 .updateField(Counters.getDefaultInstance(), "scores", """{"x":"not a number"}""")
         }
+    }
+
+    // ---- Non-finite floats ---------------------------------------------------------------------
+
+    private fun measurements(): Measurements = Measurements.newBuilder()
+        .addSamples(Float.NaN).addSamples(Float.POSITIVE_INFINITY).addSamples(1.5f)
+        .setReading(Reading.newBuilder().setValue(Double.NEGATIVE_INFINITY))
+        .build()
+
+    @Test
+    fun nonFiniteFloatsInNestedValuesAreReadAsStrictJson() {
+        val entries = ReflectiveProtoMapper<Measurements>().toEntries(measurements())
+        // Strict JSON (what the browser's JSON.parse accepts) has no NaN/Infinity literals.
+        assertEquals("[\"NaN\",\"Infinity\",1.5]", entries.byKey("samples").value)
+        assertEquals("{\"value\":\"-Infinity\"}", entries.byKey("reading").value)
+    }
+
+    @Test
+    fun nonFiniteFloatsSurviveASave() {
+        val mapper = ReflectiveProtoMapper<Measurements>()
+        var proto = measurements()
+        for (key in listOf("samples", "reading")) {
+            proto = mapper.updateField(proto, key, mapper.toEntries(proto).byKey(key).value)
+        }
+        assertTrue(proto.getSamples(0).isNaN())
+        assertEquals(Float.POSITIVE_INFINITY, proto.getSamples(1))
+        assertEquals(1.5f, proto.getSamples(2))
+        assertEquals(Double.NEGATIVE_INFINITY, proto.reading.value, 0.0)
     }
 }

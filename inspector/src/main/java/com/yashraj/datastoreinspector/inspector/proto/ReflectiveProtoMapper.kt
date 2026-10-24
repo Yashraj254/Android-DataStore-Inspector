@@ -100,6 +100,10 @@ internal class ReflectiveProtoMapper<T : Any> : ProtoInspectorMapper<T> {
     /** Recursively converts a runtime field value into a Gson-serialisable tree. */
     private fun jsonValueOf(v: Any?): Any? = when (v) {
         null -> null
+        // JSON can't hold NaN or Infinity as numbers, so send them as text
+        // ("NaN", "Infinity", "-Infinity"). Saving turns the text back into the number.
+        is Double -> if (v.isFinite()) v else v.toString()
+        is Float -> if (v.isFinite()) v else v.toString()
         is String, is Number, is Boolean -> v
         is List<*> -> v.map { jsonValueOf(it) }
         is Map<*, *> -> v.entries.associate { (k, value) -> k.toString() to jsonValueOf(value) }
