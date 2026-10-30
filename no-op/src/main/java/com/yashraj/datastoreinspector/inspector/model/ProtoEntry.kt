@@ -19,4 +19,5 @@ data class ProtoEntry(
     val key: String,
     val value: String,
     val type: String,
+    val template: String? = null,
 )

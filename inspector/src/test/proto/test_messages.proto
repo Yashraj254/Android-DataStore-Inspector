@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+option java_package = "com.yashraj.datastoreinspector.inspector.testproto";
+option java_multiple_files = true;
+
+// Exercises every field kind the ReflectiveProtoMapper handles.
+message Reward {
+  int32 language = 1;
+  float approval_percentage = 2;
+  Level level = 3;                        // enum
+  Rank rank = 4;                          // nested message
+  repeated Achievement achievements = 5;  // repeated message
+  repeated string tags = 6;               // repeated scalar
+}
+
+enum Level {
+  BRONZE = 0;
+  SILVER = 1;
+  GOLD = 2;
+}
+
+message Rank {
+  int32 position = 1;
+  string title = 2;
+}
+
+message Achievement {
+  string name = 1;
+  int32 points = 2;
+  bool unlocked = 3;
+}
+
+// Real fields whose getter names collide with the generated helper suffixes
+// (getXCount, getXBytes, getXCase) that schema discovery skips.
+message Counters {
+  int32 retry_count = 1;
+  int64 total_bytes = 2;
+  Level test_case = 3;
+  map<string, int32> scores = 4;  // generates getScoresCount()
+  repeated string items = 5;      // generates getItemsCount()
+  oneof payload {                 // generates getPayloadCase()
+    string note = 6;
+    int32 code = 7;
+  }
+}
+
+// More names that end in, or look like, the generated helper suffixes.
+message Collisions {
+  map<string, int32> site_map = 1;  // map whose name ends in "map"
+  string price = 2;
+  int32 price_value = 3;            // getPriceValue() next to non-enum getPrice()
+  repeated string todo_list = 4;    // repeated whose name ends in "list"
+  PageBuilder page = 5;             // message type whose name ends in "Builder"
+  int32 a_b_c = 6;                  // single-letter words: getter is getABC()
+}
+
+message PageBuilder {
+  string name = 1;
+}
+
+message Choice {
+  oneof payload {
+    string note = 1;
+    int32 code = 2;
+  }
+}
+
+// Nested messages edited through the JSON tree editor.
+message Envelope {
+  Choice choice = 1;      // nested message containing a oneof
+  Counters counters = 2;  // nested message containing a (read-only) map
+}
+
+// Floats that JSON cannot represent as numbers (NaN, +/-Infinity), nested and repeated.
+message Measurements {
+  repeated float samples = 1;
+  Reading reading = 2;
+}
+
+message Reading {
+  double value = 1;
+}

@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.protobuf)
 }
 
 android {
@@ -31,9 +32,28 @@ android {
     }
 }
 
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${libs.versions.protobuf.get()}"
+    }
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                create("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.startup.runtime)
     implementation(libs.datastore.preferences)
     implementation(libs.gson)
+
+    testImplementation(libs.junit)
+    // protobuf-lite runtime for the generated test messages (test scope only).
+    testImplementation(libs.protobuf.kotlin.lite)
 }

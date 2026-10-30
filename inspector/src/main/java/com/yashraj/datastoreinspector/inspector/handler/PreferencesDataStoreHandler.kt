@@ -68,7 +68,6 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
                 "StringSet" -> prefs[stringSetPreferencesKey(key)] = gson.fromJson(value, Array<String>::class.java).toSet()
             }
         }
-        Log.d(TAG, "Updated DataStore: $name[$key] = $value (type: $type)")
     }
 
     suspend fun delete(name: String, key: String, type: String) {
@@ -87,13 +86,11 @@ internal class PreferencesDataStoreHandler(private val dataStores: Map<String, D
             }
         }
         dataStore.edit { prefs -> prefs.remove(typedKey) }
-        Log.d(TAG, "Deleted DataStore key: $name[$key]")
     }
 
     suspend fun clear(name: String) {
         val dataStore = dataStores[name] ?: return
         dataStore.edit { it.clear() }
-        Log.d(TAG, "Cleared DataStore: $name")
     }
 
 }

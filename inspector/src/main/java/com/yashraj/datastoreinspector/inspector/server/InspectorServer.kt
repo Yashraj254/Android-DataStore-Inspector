@@ -31,6 +31,12 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
     private val dataStoreHandler = PreferencesDataStoreHandler(DataStoreInspector.getDataStores())
     private val protoHandler = ProtoDataStoreHandler(DataStoreInspector.getProtoDataStores())
     private val htmlBytes = context.assets.open("inspector.html").use { it.readBytes() }
+    // Lets the page show which app it is connected to.
+    private val appInfo = mapOf(
+        "appName" to context.applicationInfo.loadLabel(context.packageManager).toString(),
+        "packageName" to context.packageName,
+        "port" to port,
+    )
 
     companion object {
         private const val TAG = "InspectorServer"
@@ -39,10 +45,10 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
     }
 
     override suspend fun serve(request: Request): Response {
-        Log.d(TAG, "Request: ${request.method} ${request.uri}")
         val uri = request.uri
         return when {
             uri == "/" && request.method == "GET" -> Response(Status.OK, "text/html", htmlBytes)
+            uri == "/api/info" && request.method == "GET" -> json(appInfo)
 
             uri == "/api/sharedprefs" && request.method == "GET" -> json(prefsHandler.listAll())
             uri.startsWith("/api/sharedprefs/") && request.method == "GET" -> json(prefsHandler.getAllWithTypes(uri.removePrefix("/api/sharedprefs/")))
@@ -121,8 +127,12 @@ internal class InspectorServer(context: Context, port: Int) : SimpleHttpServer(p
     private suspend fun handleProtoPut(request: Request, name: String): Response {
         val body = readBody(request) ?: return error400("Missing or oversized body")
         val req = parseJson(body, ProtoUpdateRequest::class.java) ?: return error400("Invalid JSON body")
-        protoHandler.update(name, req.key, req.value)
-        return json(emptyMap<String, String>())
+        return try {
+            protoHandler.update(name, req.key, req.value)
+            json(emptyMap<String, String>())
+        } catch (e: IllegalArgumentException) {
+            error400("Update failed for '${req.key}': ${e.message}")
+        }
     }
 
     private fun <T> parseJson(body: String, cls: Class<T>): T? = try {

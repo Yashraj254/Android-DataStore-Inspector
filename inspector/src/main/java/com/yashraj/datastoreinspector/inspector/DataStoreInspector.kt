@@ -33,12 +33,15 @@ object DataStoreInspector {
 
     private const val TAG = "DataStoreInspector"
     private const val DEFAULT_PORT = 5050
+    /** Ports tried, in order, when no port is passed to [start]. */
+    private val DEFAULT_PORTS = DEFAULT_PORT..DEFAULT_PORT + 9
 
     private val registeredDataStores = ConcurrentHashMap<String, DataStore<Preferences>>()
     private val registeredProtoDataStores = ConcurrentHashMap<String, ProtoDataStoreHolder<*>>()
     private var server: InspectorServer? = null
     private var isRunning = false
     private var currentPort: Int = -1
+    private var startedOnDefaultRange = false
 
     /**
      * Registers a Preferences DataStore for inspection under [name].
@@ -71,11 +74,14 @@ object DataStoreInspector {
     /**
      * Starts the inspector HTTP server on [port] (default 5050).
      *
-     * The library auto-starts via App Startup before `Application.onCreate()`, so by the time
-     * your code runs the server is already bound to port 5050. Calling this with a custom
-     * [port] will stop the auto-started server and rebind on the requested port. If the
-     * server has already been moved to a non-default port, a subsequent call with a different
-     * port is treated as a conflict and ignored with a warning.
+     * With the default port, the first free port in 5050..5059 is used, so several debuggable
+     * apps on one device each get their own server; the chosen port is shown in a toast and in
+     * logcat. An explicitly passed [port] is used as-is.
+     *
+     * The library auto-starts via App Startup before `Application.onCreate()`. Calling this with
+     * a custom [port] stops the auto-started server and rebinds on the requested port. If the
+     * server was already started on a custom port, a call with a different port is treated as a
+     * conflict and ignored with a warning.
      */
     @Synchronized
     @UiThread
@@ -88,33 +94,48 @@ object DataStoreInspector {
             Log.i(TAG, "Inspector not started: app is not debuggable.")
             return
         }
+        val candidates = if (port == DEFAULT_PORT) DEFAULT_PORTS.toList() else listOf(port)
         if (isRunning) {
-            if (port == currentPort) return
-            if (currentPort == DEFAULT_PORT) {
-                Log.i(TAG, "Restarting inspector on port $port (was $currentPort)")
-                stop()
-                // fall through to start on the new port
-            } else {
-                Log.w(
-                    TAG,
-                    "Inspector already running on port $currentPort; ignoring start(port=$port)."
-                )
+            // Already running on a port this call would accept.
+            if (currentPort in candidates) return
+            if (!startedOnDefaultRange) {
+                Log.w(TAG, "Inspector already running on port $currentPort; ignoring start(port=$port).")
                 return
             }
         }
-        try {
-            server = InspectorServer(appContext, port)
-            server?.start()
-            isRunning = true
-            currentPort = port
-            Toast.makeText(appContext, "DataStore Inspector started on port $port", Toast.LENGTH_SHORT).show()
-        } catch (e: BindException) {
-            Toast.makeText(appContext, "Port $port is already in use", Toast.LENGTH_LONG).show()
-            Log.e(TAG, "Port $port is already in use. Please choose a different port.")
+        // Bind the new port before releasing the current one, so a port that turns out to be in
+        // use leaves the running server untouched.
+        val started = startOnFirstFreePort(candidates) { p ->
+            InspectorServer(appContext, p).also { it.start() }
+        }
+        if (started == null) {
+            val ports = if (candidates.size == 1) "Port $port is"
+            else "Ports ${candidates.first()}-${candidates.last()} are"
+            if (isRunning) {
+                Toast.makeText(appContext, "DataStore Inspector: $ports in use; staying on port $currentPort", Toast.LENGTH_LONG).show()
+                Log.w(TAG, "$ports already in use; inspector stays on port $currentPort.")
+            } else {
+                Toast.makeText(appContext, "DataStore Inspector: $ports already in use", Toast.LENGTH_LONG).show()
+                Log.e(TAG, "$ports already in use. Pass a free port to DataStoreInspector.start().")
+            }
             return
         }
-
-        Log.d(TAG, "Server started on port $port")
+        val (boundPort, boundServer) = started
+        if (isRunning) {
+            Log.i(TAG, "Moving inspector to port $boundPort (was $currentPort)")
+            stop()
+        }
+        server = boundServer
+        isRunning = true
+        currentPort = boundPort
+        startedOnDefaultRange = port == DEFAULT_PORT
+        val appName = appContext.applicationInfo.loadLabel(appContext.packageManager)
+        Toast.makeText(appContext, "DataStore Inspector: $appName on port $boundPort", Toast.LENGTH_SHORT).show()
+        Log.i(
+            TAG,
+            "Inspector for $appName (${appContext.packageName}) on port $boundPort: " +
+                "adb forward tcp:$boundPort tcp:$boundPort"
+        )
     }
 
     /**
@@ -128,6 +149,7 @@ object DataStoreInspector {
         server = null
         isRunning = false
         currentPort = -1
+        startedOnDefaultRange = false
         Log.d(TAG, "Inspector stopped")
     }
 
@@ -135,4 +157,20 @@ object DataStoreInspector {
 
     internal fun getProtoDataStores(): Map<String, ProtoDataStoreHolder<*>> = registeredProtoDataStores
 
+}
+
+/**
+ * Calls [start] with each port in [ports] until one does not throw [BindException] (port in
+ * use), returning that port and [start]'s result, or null when every port is taken. Any other
+ * failure propagates.
+ */
+internal fun <T> startOnFirstFreePort(ports: Iterable<Int>, start: (Int) -> T): Pair<Int, T>? {
+    for (port in ports) {
+        try {
+            return port to start(port)
+        } catch (e: BindException) {
+            // in use; try the next port
+        }
+    }
+    return null
 }

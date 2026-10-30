@@ -20,7 +20,10 @@ import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.lifecycleScope
 import com.yashraj.datastoreinspector.sample.databinding.ActivityMainBinding
+import com.yashraj.datastoreinspector.sample.proto.Tier
 import com.yashraj.datastoreinspector.sample.proto.UserPreferences
+import com.yashraj.datastoreinspector.sample.proto.address
+import com.yashraj.datastoreinspector.sample.proto.badge
 import com.yashraj.datastoreinspector.sample.proto.copy
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -72,6 +75,10 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnAddRandomField.setOnClickListener {
             addRandomField()
+        }
+
+        binding.btnRefreshSharedPrefs.setOnClickListener {
+            loadFromSharedPrefs()
         }
     }
 
@@ -148,6 +155,23 @@ class MainActivity : AppCompatActivity() {
                     rating = 4.5f
                     lastLogin = System.currentTimeMillis()
                     accountBalance = 199.99
+                    tier = Tier.GOLD
+                    address = address {
+                        city = "Mumbai"
+                        country = "India"
+                        zip = 400001
+                    }
+                    badges.clear()
+                    badges += badge {
+                        name = "Early Adopter"
+                        level = 3
+                        featured = true
+                    }
+                    badges += badge {
+                        name = "Streak Master"
+                        level = 5
+                        featured = false
+                    }
                 }
             }
         }
@@ -156,6 +180,9 @@ class MainActivity : AppCompatActivity() {
     private fun observeProtoDataStore() {
         lifecycleScope.launch {
             protoDataStore.data.collectLatest { userPrefs ->
+                val badges = userPrefs.badgesList.joinToString("; ") {
+                    "${it.name} (lvl ${it.level}${if (it.featured) ", featured" else ""})"
+                }.ifEmpty { "none" }
                 binding.tvProtoDataStore.text = """
                     Username: ${userPrefs.username}
                     Email: ${userPrefs.email}
@@ -165,6 +192,9 @@ class MainActivity : AppCompatActivity() {
                     Rating: ${userPrefs.rating}
                     Last Login: ${userPrefs.lastLogin}
                     Balance: ${userPrefs.accountBalance}
+                    Tier: ${userPrefs.tier}
+                    Address: ${userPrefs.address.city}, ${userPrefs.address.country} ${userPrefs.address.zip}
+                    Badges: $badges
                 """.trimIndent()
             }
         }
